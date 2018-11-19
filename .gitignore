@@ -1,0 +1,12 @@
+*.aux
+*.log
+*.lof
+*.lol
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.tcp
+*.tps
+*.toc
+*.sty

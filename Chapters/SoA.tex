@@ -1,0 +1,59 @@
+%************************************************
+\chapter{State of the Art}\label{ch:SoA}
+%************************************************
+
+
+In this chapter we are going to explore what tools and methodologies are already available and know to provision software on a computing cluster.
+We will explore what is used in the industry as well as what was developed specifically inside the CERN environment
+We will also focus on how those system works with container technology, in this particular chapter, we will focus just on Docker since Singularity is not widely used in the industry and none of the following tools support it.
+
+\section{Ansible}
+
+Ansible is a provisioning system based on the concept of playbooks and inventory.
+
+Playbooks are files that describe the desired final status of a server. It is include software to be installed, configuration files to be created and setted, security policies, status of services and it may also include docker images to be downloaded.
+
+The inventory is a list of the nodes where we wish to reach the final status described in the playbook.
+
+The Ansible approach is declarative, indeed, we describe what we want and where we want it and then we leave it to an internal engine to reach the desired state.
+
+Ansible can also be categorized as a non-intrusive provisioning system, it works using an a remote connection (SSH) to the nodes it is managing without relieing on any software been installed on the node itself.
+
+\section{Puppet}
+
+Puppet is another declarative provisioning system.
+
+Similarly to Ansible, also in Puppet, we describe the desired status of the servers. The big difference with Ansible is that Puppet needs a daemon, called “agent”, running on the provisioned servers. 
+
+The agent ensure that the desired configuration is keep in spite of manual changes on the machine.
+
+The agent is as well responsible to makes all the necessary changes to the system. 
+
+\section{Kubernetes}
+
+Kubernetes (K8S) is a container orchestration system based on docker for computing clusters.
+
+A central master is responsible for managing the cluster. It coordinates all the activities such as scheduling containers or rolling out updates. The worker nodes simply execute the commands from the master.
+
+\section{Package Managers}
+
+Packages managers are the standard way to install software on most linux distribution.
+
+A package is conceptually composed by an archive that contains the actual files to install on the system and by a configuration that describe where to install each file.
+
+Moreover a package describe its dependencies, dependencies that are recursively installed by the package manager.
+
+\section{Alice Software Installation System}
+
+In order to ease the load on the network the Alice collaboration opted to distribute packages using the BitTorrent protocol.
+The installation is still based on standard linux packages, but the use of a peer to peer distribution mechanism avoided to overload the central package manager.
+However, it still relies on a central authoritative BitTorrent tracker hosted at CERN itself.
+
+\section{Difference with CVMFS}
+
+All the above tools used for installing software relies on installing the software on the machine before that it is actually request, doing so, it normally moves also files that are not strictly necessary for every computation, wasting 
+
+CVMFS on the other side avoid to move any software on the machine if it is not necessary. The downloading of a file is defer to when it is necessary (on the OPEN syscall) hence only the file strictly necessary are downloaded.
+
+It results in an increase of latency  when starting an application but the bandwidth consumption is keep to the minimun.
+

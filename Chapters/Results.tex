@@ -1,0 +1,32 @@
+%************************************************
+\chapter{Results}\label{ch:Results}
+%************************************************
+
+
+In this section we explore the result of this works.
+
+We mentioned 4 metrics that we were considering for this work:
+
+\begin{itemize}
+\item Minimize the amount of space required
+\item Minimize the start up time of containers
+\item Limit the number of files in each CVMFS catalogs
+\item Minimize the complexity of managing the filesystem itself
+\end{itemize}
+
+All the measurement are going to be done against a CVMFS repository containing images necessary for standard HEP work.
+
+In order to quantify the amount of space required we are simply going to measure the amount of space that the repository uses, we will compare this figure with the amount of data that the repository provides and with a simple summation over the size of the layers stored in the repository.
+
+The startup time of a container is greatly influenced by the cache layer in all cases, either if we serve the content with CVMFS or if the content is already cached in the hosting machine.
+
+We will measure the startup time of all kind of technologies with and without cache a significant number of times, the measurement are made inside the CERN data center where we assume a stable and reliable internet connection.
+
+The amount of files in each CVMFS catalog is a simple measurement, since the amount of catalogs is rather big we will synthetize this measurement.
+
+To measure the complexity of managing the filesystem we are going to measure the cyclomatic complexity of the software that we use to manage it.
+
+\section{Space Requirement}
+\section{Container Startup Time}
+\section{File in the sub-catalogs}
+\section{Complexity}
