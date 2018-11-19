@@ -125,6 +125,8 @@ Each layer is identify by its digest. The whole content of the layers is hashed 
 
 The same schema is adopted for images as well, indeed, each image is identifies by the digest which is the hash of all its content.
 
+An image is defined by it's manifest, that declares the digest of the image itself, and the set of layers that compose the image, the layers are referenced by their digests.
+
 The layers are distributed, generally, over the network as compressed tar archives that need to be downloaded, then uncompressed and potentially cached.
 
 The components responsible for distributing the layers are the registries. The registries expose an HTTP interfaces that serve the required layer as compressed tar archive.
