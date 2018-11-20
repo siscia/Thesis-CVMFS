@@ -5,12 +5,24 @@
 In this chapter we are going to proposed a read-only file-system structure for
 running Docker images using both Singularity and the docker thin-images plugin.
 We focus on Singularity because is a widely deployed system in HPC and on
-docker thin-images because allow the user to use the Docker infrastructure to
-run images whose content is distributed with a read only file-system.
+docker thin-images because it allow the user to use the Docker infrastructure
+to run images whose content is distributed with a read only file-system.
 
-The first section will analyze the structure for Singularity image We will
-start by analyzing the structure for Singularity and then we will move on to
-the docker thin-images.
+The first section will analyze the file-system structure to host the Docker
+images to run with Singularity. We will explain how we created a hierarchical
+structure similar to the one of the docker registries while keeping the
+repository maintainable and without putting too much pressure in the
+sub-catalog system.
+
+The second section will analyze how we store the content used by the thin-images
+Docker plugin. Structural similarities between Docker images and Docker layers
+will drive us to adopt a very similar solution to avoid stressing the
+sub-catalog system. The sharing of layers between different docker images will
+allow us to avoid repeating work, but it will introduce difficulties during the
+deletion of the image itself that we will solve using a reference count system.
+
+The last section will show how we keep track of the images already present in
+the file-system.
 
 \section{Singularity Images}
 
@@ -279,15 +291,14 @@ The complete structure for storing docker images is the one showed in
 
 \section{Keeping track of the work already done}
 
-Finally, we need a way to know which docker images have been already converted
-into thin-images and is already hosted in the read-only file-system.
-
-Keeping track of this information will avoid us to make duplicated work.
+To avoid to perform duplicated work is necessary to keep track of which image
+is already been added to the file-system. The same information may be used by
+the users to know exactly what images is hosted in the file-system.
 
 In order to know which image is already been converted we need to uniquely
 identify each image, as already mention, using the combination of image name
-and tag is not enough, since the tag are mutable.  Hence rely on the digest of
-the image.
+and tag is not enough, since the tag are mutable.  Hence we rely on the digest
+of the image.
 
 The information about each image is stored into another top-level hidden
 directory, \texttt{.metadata/}.
@@ -296,11 +307,10 @@ Inside the \texttt{.metadata/} folder we have others directories, one for each
 hosted image.  Inside those directories there is a single file,
 \texttt{manifest.json} that store the manifest of the image itself.
 
-As already mentioned in \ref{subsec:singularity-docker-distribution} on page
-\pageref{subsec:singularity-docker-distribution}, the manifest contains the
-digest of the image itself.  Comparing the manifest stored in the file-system
-with the manifest downloaded from the docker registries is possible to
-understand if the image should be updated or nor.
+As already mentioned in \ref{subsec:singularity-docker-distribution} the
+manifest contains the digest of the image itself.  Comparing the manifest
+stored in the file-system with the manifest downloaded from the docker
+registries is possible to understand if the image should be updated or nor.
 
 The structure of the \texttt{.metadata/} folder is show in figure
 \ref{fig:metadata-folder-structure}.
@@ -324,5 +334,29 @@ The structure of the \texttt{.metadata/} folder is show in figure
 \label{fig:metadata-folder-structure}
 \end{figure}
 
+\section{Closing remarks}
 
+In this chapter we have introduced a file-system structure suitable to host
+docker images that can be run using both Singularity and the docker thin-images
+plugin.
 
+We started by storing the unpacked images used by Singularity in a hierarchical
+structure that recall the one of the Docker registries to enhance the
+discoverability of the images itself. This approach however would have make
+difficult to maintain the repository since we would not know the version of
+each image unpacked. We overcome this issue storing the real unpacked images in
+a hidden directory that embed the digest of the image itself and using symbolic
+links to preserve the hierarchical structure. Too many unpacked images stored
+under the same directories however would have put too much pressure on the
+catalog system of CVMFS, hence we adopted the use of super-directories.
+
+On the second part we analyzed how to store the layers used by the docker
+thin-image plugin. A single layer can be used by multiple images this allowed
+us to avoid repeating work but at the same time it makes more complex removing
+an image from the file-system. We decided to keep a reference count to know
+when is safe to actually delete a layer. The same issue of too many files under
+the same sub-catalog arose also for storing the layers, we used the same
+approach used for the unpacked images based on the use of super-directories.
+
+The last section explored how we keep track of exactly which image is already
+store in the file-system storing the image catalog in a hidden subdirectory.
