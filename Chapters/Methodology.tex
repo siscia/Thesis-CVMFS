@@ -2,33 +2,43 @@
 \chapter{Methodology}\label{ch:Methodology}
 %************************************************
 
-In this chapter we are going to analyze the proposed file-system structure for using both Singularity images and docker thin-images. 
+In this chapter we are going to proposed a read-only file-system structure for
+running Docker images using both Singularity and the docker thin-images plugin.
+We focus on Singularity because is a widely deployed system in HPC and on
+docker thin-images because allow the user to use the Docker infrastructure to
+run images whose content is distributed with a read only file-system.
 
-We will start by analyzing the structure for Singularity and then we will move on to the docker thin-images.
+The first section will analyze the structure for Singularity image We will
+start by analyzing the structure for Singularity and then we will move on to
+the docker thin-images.
 
 \section{Singularity Images}
 
-As mentioned in \ref{subsec:singularity-docker-distribution} Singularity is able to run standard docker images, moreover, one of the most common way to distribute Singularity images is to make them available as Docker images in Docker registries.
+To run Docker images using Singularity is sufficient to start the singularity
+executable providing as input the directory where the image is been unpacked.
+In this section we are going to show how we structure the file-system in a way
+that allow users to easily discover and run unpacked docker images using
+Singularity while keeping the file-system easy to maintain.
 
-Hence we exploited the natural hierarchical structure of docker images in order to enhance the discoverability of the Singularity images.
+As mentioned in \ref{subsec:singularity-docker-distribution} docker images have
+a hierarchical structure.  The first level of the hierarchy is the docker
+registry where the image is hosted.  The most common registries in our case are
+the official docker hub \footnote{\texttt{registry.hub.docker.com}} and the
+CERN internal registry \footnote{\texttt{gitlab-registry.cern.ch}}.
 
-As mentioned in \ref{subsec:singularity-docker-distribute} docker images have an hierarchical structure.
+The second level in the hierarchical structure is the namespace of the docker
+image.  If the image is one of the official docker images it will be the
+standard namespace: “library”.  In all the other cases, the namespace will be
+the same as the original docker image.  For example for the images belonging to
+the ATLAS collaboration we use the namespace \texttt{atlas}.
 
-The first level of the hierarchy is the docker registry where the image is hosted. The most common registries in our case are the official docker hub (\texttt{registry.hub.docker.com}) and the CERN internal registry (\texttt{gitlab-registry.cern.ch}).
-
-The second level in the structure is the namespace of the docker image. 
-If the image is one of the official docker images it will be the standard namespace: “library”.
-In all the other cases, the namespace will be the same as the original docker image.
-For example for the images belonging to the ATLAS collaboration we use the namespace \texttt{atlas}.
-
-The last level is the name of the image itself together with the tag of such image, separated by a colon (\texttt{:}).
-We decided to avoid yet another level containing just the tags.
-Indeed there are relatively few tags for each image and adding another level of indirection would have made it harder to explore the file-system.
-Moreover, we opted to use the colon because it is the same character used in the docker registries between the images and the tag and it is immediately recognizable by users.
-
-In the image \ref{fig:simple-fs} we offer a visualization of the file-system for a small repository. It is possible to appreciate the hierarchical structure.
-
-We will continue this part explaining the use of symbolic links.
+The last level is the name of the image itself together with the tag of such
+image, separated by a colon (\texttt{:}).  We decided to avoid yet another
+level containing just the tags.  Indeed there are relatively few tags for each
+image and adding another level of indirection would have made it harder to
+explore the file-system.  Moreover, we decided to use the colon because it is
+the same character used in the docker registries between the images and the tag
+and it is immediately recognizable by users.
 
 \begin{figure}
 \dirtree{%
@@ -49,27 +59,45 @@ We will continue this part explaining the use of symbolic links.
 \label{fig:simple-fs}
 \end{figure}
 
-While this structure is user friendly, it makes the maintenance of the repository complex.
+While this structure is user friendly, it makes the maintenance of the
+repository complex.
 
-The tags used in each image are not immutable, hence, without continuous maintenance, it may happen that the images stored inside the file-system are not up to date.
-However, with the described structure, it would be extremely complex to detect if an image is up to date or if it needs further updates.
+The tags used in each image are not immutable, hence, without continuous
+maintenance, it may happen that the images stored inside the file-system are
+not up to date making difficult for the user to know what version of the
+software is being run.  However with the described structure, it would be
+extremely complex to detect if an image is up to date or if it needs further
+updates.
 
-Fortunately each image is uniquely identified by its digest.
-We decided to store the real content of the images in an hidden folder that embed the digest itself. 
-We preserved the structure presented above using symbolic links.
+To work around this issues we exploited the fact that each image is uniquely
+identified by its digest.  Indeed we decided to store the real content of the
+images in an hidden folder that embed the digest itself while preserving the
+structure presented above using symbolic links.
 
-The folder that contains the real content of a Singularity images are all below the standard subdirectory \texttt{.flat/}.
-The name \texttt{.flat/} was chosen to make it clear that only flatted file systems are stored in there.
+We show the directory structure of the file-system on figure
+\ref{fig:simple-fs}.
 
-Embedding the digest in the name of the folder allows to immediately find the location of an image, which is useful when an image become obsolete and need to be deleted from the file-system.
+The folder that contains the real content of a Singularity images are all below
+the standard subdirectory \texttt{.flat/}.  The name \texttt{.flat/} was chosen
+to make it clear that only flatted file systems are stored in there.
 
-From a theoretical point of view it would be sufficient to store the whole content of the Singularity images in the folder \texttt{.flat/\$image\_digest}.
-However, from a practical point of view this would create too much content in a single folder putting too much pressure in the CVMFS sub-catalog system.
+Embedding the digest in the name of the folder allows to immediately find the
+location of an image, which is useful when an image become obsolete and need to
+be deleted from the file-system.
 
-The standard solution in cases like this is to create a fixed number of directories and put some of the content in each of them.
-We decide to use the first 2 bytes of each digest as “super-directory”.
+From a theoretical point of view it would be sufficient to store the whole
+content of the Singularity images in the folder \texttt{.flat/\$image\_digest}.
+However, from a practical point of view this would create too much content in a
+single folder putting too much pressure in the CVMFS sub-catalog system.
 
-Since the digest is an hexadecimal string this approach provides us with $16 \times 16 = 256$ fixed subdirectories inside the \texttt{.flat/} directory, each of which will contain only the content of the images whose digest start with those 2 specific bytes.
+To overcome this issue we decided to create a fixed number of
+"super-directories" where we placed the unpacked folder of the images.  To
+easily locate each unpacked folder in the super-directories we decided to call
+each super-directory as the prefix of the digest of the images it is
+containing. Since the digest is an hexadecimal string this approach provides us
+with $16 \times 16 = 256$ fixed super-directories inside the \texttt{.flat/}
+directory, each of which will contain only the content of the images whose
+digest start with those 2 specific bytes.
 
 \begin{figure}
 \dirtree{%
@@ -88,63 +116,85 @@ Since the digest is an hexadecimal string this approach provides us with $16 \ti
 \label{fig:super-directories}
 \end{figure}
 
-On figure \ref{fig:super-directories} we can see that “0c”, “2c”, …, “ea” are all “super-directories” and each one contains only the file-systems that start with “0c”, “2c”, …, “ea” respectively.
-Note the case of “ea” that contains file-systems of multiple images whose digest start with “ea”.
+On figure \ref{fig:super-directories} we can see that “0c”, “2c”, …, “ea” are
+all “super-directories” and each one contains only the file-systems that start
+with “0c”, “2c”, …, “ea” respectively.  Note the case of “ea” that contains
+file-systems of multiple images whose digest start with “ea”.
 
-Another positive side-effect of the use of symbolic links is that symbolic links manipulation is defined as atomic in the POSIX standard.
+Another positive side-effect of the use of symbolic links is that symbolic
+links manipulation is defined as atomic in the POSIX standard.
 
-We re-iterate that the use of "super-directories" is necessary for limits in the implementation of CVMFS and they are not necessary on an abstract read-only file-system.
+The use of "super-directories" is necessary for limits in the implementation of
+CVMFS and they are not necessary on an abstract read-only file-system.
 
 \section{Docker Thin Images}
 
-While for Singularity is sufficient to have the image unpacked in a simple directory running docker containers requires a more complex set up.
-As explained in \ref{subsec:docker-thin-images} the recipe of the docker thin-image contains the path of the directories where each layer of the original docker image is hosted, those directories will be mounted by a specific docker plugins, hence need to be accessible.
+While for running docker images using Singularity it is sufficient to have the
+image unpacked in a simple directory running docker containers using the
+thin-images plugin requires a more complex set up.  As explained in
+\ref{subsec:docker-thin-images} the recipe of the docker thin-image contains
+the path of the directories where each layer of the original docker image is
+hosted, those directories will be mounted by the docker plugin.
 
-In the case of docker we do not need to provide an human-friendly interface for the file-system like we did for Singularity. Indeed the file-system won't be explored by humans but it will only be accessed by the docker daemon plugin.
+All the docker layers are stored under a common subdirectory of the
+file-system, the \texttt{.layers/} directory.
 
-Like docker images also the docker layers are identified by an unique digest.
+Since the sub-tree of the file-system used by the Docker thin-images is used only
+by the Docker plugin we don't need to create a human-friendly structure like we
+did for the Singularity sub-tree.
 
-Since docker layers and Singularity images shares similar characteristics and access patterns their structure in the file-system is quite similar.
+Like docker images also the docker layers are identified by an unique digest,
+and similarly to the docker images, store all of them in a single directory
+will put too much pressure in the CVMFS sub-catalog system, hence we follow the
+exact same model used for storing the unpacked images also for the layers
+creating 216 super-directories.
 
-All the docker layers are stored under a common subdirectory of the file-system, the \texttt{.layers/} directory.
+A big advantage of the use of layers over flat images, is that layers can be
+shared by multiple images.
 
-Similarly, in order to don’t put too much pressure in the CVMFS distribution systems, each layer is stored in a “super-directory” following the exact same schema of the Singularity images.
+The sharing of layers allow us to avoid re-doing work that is already been
+done, in particular if a later is already in the file-system it will not be
+added again. On the other hand it makes more complex removing an image since it
+is necessary to remove each layer that compose the image, but some layer may be
+shared between images.
 
-A big advantage of the use of layers over flat images, is that layers can be shared by multiple images.
+Removing layers has the important implication that once the layer is removed
+every thin image that relies on it won’t work anymore.  However those
+thin-images could be stored on the client side where we don’t have any access.
+Please refer to the figure \ref{fig:thin-image-lifecycle} on page
+\pageref{fig:thin-image-lifecycle}
 
-This sharing provides both an advantage and a disadvantage:
-\begin{enumerate}
-        \item It is a great opportunity to avoid re-doing work that is already been done. In particular, if a layer is already in the file-system it will not be added again.
-        \item It makes more complex to remove a docker image. To remove an image is necessary to remove each layer, however layers may be shared between images.
-\end{enumerate}
-
-Removing layers has the important implication that once the layer is removed every thin image that relies on it won’t work anymore.
-However those thin-images could be stored on the client side where we don’t have any access.
-Please refer to the figure \ref{fig:thin-image-lifecycle} on page \pageref{fig:thin-image-lifecycle}
-
-To don't disrupt the user workflow while keeping the repository to a manageable size we consider several option:
+To do not disrupt the user workflow while keeping the repository to a manageable
+size we consider several option: 
 \begin{enumerate}
 \item Never remove layers
 \item Remove layers as soon as possible
-\item Provide a grace period before to finally remove the layer
+\item Provide a grace period before finally removing the layer
 \end{enumerate}
 
-The option to never remove layers is impractical since the size of the file-system will grow unbounded.
+The option to never remove layers is impractical since the size of the
+file-system will grow unbounded.
 
-Remove layers as soon as possible is not desiderable, even running computation could be broken by this policy and the users have no way to deal with this possibility but retrying the whole computation.
+Remove layers as soon as possible is not desiderable, even running computation
+could be broken by this policy and the users have no way to deal with this
+possibility but retrying the whole computation.
 
-The last option is the most sensible and better suited for our use case, and so it is the one that we implement, this gave users the possibility to:
+The last option is the most sensible and better suited for our use case, and so
+it is the one that we implement, this gave users the possibility to:
 \begin{enumerate}
 \item Complete their computation
 \item Update the local images in order to always run stable containers
 \end{enumerate}
 
-In order to know which layer delete from the file-system we store a reference that map each layer to the images that use the layer itself.
+In order to know which layer to delete from the file-system we store a reference
+that map each layer to the images that use the layer itself.
 
-These references are stored as metadata in a simple \texttt{.json} file.
-We store one of these reference file for each layer in the file-system.
+These references are stored as metadata in a simple \texttt{.json} file.  We
+store one of these reference file for each layer in the file-system.
 
-Anytime a new image is added to the file-system we update the several references files, adding for each layer in the image, a reference to the image itself.
+Anytime a new image is added to the file-system we update the several
+references files, adding for each layer in the image, a reference to the image
+itself.
 
 \begin{figure}
 \begin{lstlisting}[caption={Algorithm to add an image reference to the layer metadata}, label={lst:add-image-reference-to-layer}]
@@ -163,7 +213,9 @@ EndFunction
 \end{lstlisting}
 \end{figure}
 
-When we decide to remove an image, for any layer we check that it is used only by the image we want to remove, if such is the case, we remove the layer, if it is not the case we just remove the reference of the image.
+When we decide to remove an image, for any layer we check that it is used only
+by the image we want to remove, if this is the case, we remove the layer, if it
+is not the case we just remove the reference of the image.
 
 \begin{figure}
 \begin{lstlisting}[caption={Algorithm to remove an image from the file-system}, label={lst:remove-layer}]
@@ -181,18 +233,18 @@ EndFunction
 \end{lstlisting}
 \end{figure}
 
-\section{Storing metadata information about layers}
-
-An additional directory layer is used to store metadata information, the set of images that need the specific layer, the "reference" file mentioned above.
-
-Below the directory called as the digest of the layer there are two more directories: 
+In order to store both the metadata information about the layers (in particular
+the "reference" file mentioned above) and the actual file-system of the layer
+an additional directory structure is used. Below the directory called as the
+digest of the layer there are two more directories: 
 \begin{enumerate} 
         \item \texttt{layerfs/} directory that actually store the content of the layer
         \item \texttt{.metadata/} directory that stores the references to the image in a simple JSON encoded file, “origin.json”
 \end{enumerate}
 
-Of course, the recipe of the thin images is not concerned at all with the content of the \texttt{.metadata/} directory. 
-Hence the recipe files points directly to the \texttt{layerfs/} directory.
+Of course, the recipe of the thin images is not concerned at all with the
+content of the \texttt{.metadata/} directory.  Hence the recipe files points
+directly to the \texttt{layerfs/} directory.
 
 \begin{figure}
 \dirtree{%
@@ -222,26 +274,36 @@ Hence the recipe files points directly to the \texttt{layerfs/} directory.
 \label{fig:docker-layer-structure}
 \end{figure}
 
-The complete structure for storing docker images is the one showed in \ref{fig:docker-layer-structure}
+The complete structure for storing docker images is the one showed in
+\ref{fig:docker-layer-structure}
 
 \section{Keeping track of the work already done}
 
-Finally, we need a way to know which docker images have been already converted into thin-images and is already hosted in the read-only file-system.
+Finally, we need a way to know which docker images have been already converted
+into thin-images and is already hosted in the read-only file-system.
 
 Keeping track of this information will avoid us to make duplicated work.
 
-In order to know which image is already been converted we need to uniquely identify each image, as already mention, using the combination of image name and tag is not enough, since the tag are mutable.
-Hence rely on the digest of the image.
+In order to know which image is already been converted we need to uniquely
+identify each image, as already mention, using the combination of image name
+and tag is not enough, since the tag are mutable.  Hence rely on the digest of
+the image.
 
-The information about each image is stored into another top-level hidden directory, \texttt{.metadata/}.
+The information about each image is stored into another top-level hidden
+directory, \texttt{.metadata/}.
 
-Inside the \texttt{.metadata/} folder we have others directories, one for each hosted image.
-Inside those directories there is a single file, \texttt{manifest.json} that store the manifest of the image itself.
+Inside the \texttt{.metadata/} folder we have others directories, one for each
+hosted image.  Inside those directories there is a single file,
+\texttt{manifest.json} that store the manifest of the image itself.
 
-As already mentioned in \ref{subsec:singularity-docker-distribution} on page \pageref{subsec:singularity-docker-distribution}, the manifest contains the digest of the image itself.
-Comparing the manifest stored in the file-system with the manifest downloaded from the docker registries is possible to understand if the image should be updated or nor.
+As already mentioned in \ref{subsec:singularity-docker-distribution} on page
+\pageref{subsec:singularity-docker-distribution}, the manifest contains the
+digest of the image itself.  Comparing the manifest stored in the file-system
+with the manifest downloaded from the docker registries is possible to
+understand if the image should be updated or nor.
 
-The structure of the \texttt{.metadata/} folder is show in figure \ref{fig:metadata-folder-structure}.
+The structure of the \texttt{.metadata/} folder is show in figure
+\ref{fig:metadata-folder-structure}.
 
 \begin{figure}
 \dirtree{%
