@@ -35,8 +35,15 @@ We will continue this part explaining the use of symbolic links.
 .1 /cvmfs/unpacked.cern.ch.
 .2 registry.hub.docker.com.
 .3 library.
-.4 foo:bar -> /cvmfs/unpacked.cern.ch/.flat/ab/abdkwe...fejfne.
-.4 baz:latest -> /cvmfs/unpacked.cern.ch/.flat/02/02vbfd...bvebv.
+.4 centos:centos7 -> /cvmfs/unpacked.cern.ch/.flat/75/75835...0c4ab6d.
+.4 centos:latest -> /cvmfs/unpacked.cern.ch/.flat/75/75835...0c4ab6d.
+.4 debian:stable -> /cvmfs/unpacked.cern.ch/.flat/a4/a4274...ba594cb.
+.4 gcc:latest -> /cvmfs/unpacked.cern.ch/.flat/ce/ceccd...a75dd28.
+.4 openjdk:9 -> /cvmfs/unpacked.cern.ch/.flat/5a/5adaf...5344d70.
+.4 python:2.7 -> /cvmfs/unpacked.cern.ch/.flat/3c/3c43a...0e7c9d4.
+.4 python:3.4 -> /cvmfs/unpacked.cern.ch/.flat/43/43953...ed73435.
+.3 efajardo.
+.4 docker-cms:tensorflow -> /cvmfs/unpacked.cern.ch/.flat/2d/2d5b4...97d44fc.
 }
 \caption{Visualization of the Filesystem structure, the arrows indicate symbolic links}
 \label{fig:simple-fs}
@@ -68,11 +75,14 @@ Since the digest is an hexadecimal string this approach provides us with $16 \ti
 \dirtree{%
 .1 /cvmfs/unpacked.cern.ch/.flat.
 .2 0c.
-.3 0cnjrnjdnjnbirnfddnvk.
-.3 0cji2jqwdcrnbjvevjofr.
-.2 a4.
-.3 a4nvjrbnjvbnrjbnjrtnb.
-.3 vnrjnvjnrbjvnjrnbvjrn.
+.3 0cbf37812bff083eb2325468c10aaf82011527c049d66106c3c74298ed239aaf.
+.2 2c.
+.3 2cc378c061f7b3e8d9096728eb75722a89f31fb3f3117ed10c66cc2f4b8ab281.
+.2 5a.
+.3 5adaf00da2a3cf6b611e7c850778fad3dc62c548864706b822b5f3ce65344d70.
+.2 ea.
+.3 ea4c82dcd15a33e3e9c4c37050def20476856a08e59526fbe533cc4e98387e39.
+.3 eadfca9546a132104b8bdb6b76952c6e5d412301704b7bc94e9176bcc5dda0fe.
 }
 \caption{Visualization of the "super directories" in the ".flat" subdirectory}
 \label{fig:super-directories}
@@ -177,36 +187,36 @@ An additional directory layer is used to store metadata information, the set of 
 
 Below the directory called as the digest of the layer there are two more directories: 
 \begin{enumerate} 
-        \item \texttt{rootfs/} directory that actually store the content of the layer
+        \item \texttt{layerfs/} directory that actually store the content of the layer
         \item \texttt{.metadata/} directory that stores the references to the image in a simple JSON encoded file, “origin.json”
 \end{enumerate}
 
 Of course, the recipe of the thin images is not concerned at all with the content of the \texttt{.metadata/} directory. 
-Hence the recipe files points directly to the \texttt{rootfs/} directory.
+Hence the recipe files points directly to the \texttt{layerfs/} directory.
 
 \begin{figure}
 \dirtree{%
-.1 /cvmfs/unpacked.cern.ch/.flat.
-.2 0c.
-.3 0cnjrnjdnjnbirnfddnvk.
+.1 /cvmfs/unpacked.cern.ch/.layers.
+.2 21.
+.3 2100d...d7b7dbf.
 .4 .metadata.
 .5 origin.json \DTcomment{the reference file}.
-        .4 rootfs/ \ldots{} \begin{minipage}[t]{5cm}
+.4 layerfs/ \ldots{} \begin{minipage}[t]{5cm}
         This directory contains the file-system of the layer itself and is the one that appears in the recipe of the thin-image
         \end{minipage}.
-.3 0cji2jqwdcrnbjvevjofr.
+.3 217f7...601e9e7.
 .4 .metadata.
 .5 origin.json.
-.4 rootfs/.
-.2 a4.
-.3 a4nvjrbnjvbnrjbnjrtnb.
+.4 layerfs/.
+.2 c3.
+.3 c300b...4190f83.
 .4 .metadata.
 .5 origin.json.
-.4 rootfs/.
-.3 a4rjnvjnrbjvnjrnbvjrn.
+.4 layerfs/.
+.3 c3683...53a1c45.
 .4 .metadata.
 .5 origin.json.
-.4 rootfs/.
+.4 layerfs/.
 }
 \caption{Complete visualization of the \texttt{.flat} directory}
 \label{fig:docker-layer-structure}
