@@ -2,16 +2,36 @@
 \chapter{Problem Definition}\label{ch:ProblemDefinition}
 %************************************************
 
-The goal of this work is to describe a suitable structure of a read only
-filesystem to host containers images.
+In the previous sections we addressed how CERN has overcome the challenge of
+software distributions using CVMFS. Unfortunately this is not enough since
+run-time dependencies between software components can break application that
+instead are running perfectly fine in a different environment.
 
-The result of this work has been applied at CERN to distribute containers
-images in a global read-only filesystem, CVMFS.
+A possible solution to this problem is the use of container technology.
+Packaging an application and all its dependencies in an immutable environment
+where it can be fully tested in isolation and then, when we are confident that
+the environment capture all the possible run-time dependencies, deploy not the
+single application, but the application along with all its environment.
 
-In the context of CVMFS we aim at:
+The industry already provide the necessary software for running containers,
+however the distribution of the content of the containers itself still relies
+on downloading all the possibly necessary file before to running the
+computation that introduce a waste of time and network bandwidth. 
+
+In this work we aim to create a read-only file-system structure implementable
+in CVMFS that will allow us to bridge together the efficient content
+distribution provide by CVMFS with the encapsulation (NON È IL TERMINE
+CORRETTO) provide by container technologies.
+
+This work will focus on a specific container technology, Docker. Indeed we
+focus on describe a file-system structure suitable to run Docker images using
+Singularity and the thin-images Docker graphdriver plugin.
+
+The proposed file-system structure aims to the following goals:
 \begin{itemize}
 \item Minimize the amount of space required
 \item Minimize the start up time of containers
+\item Minimize the time necessary to add a new docker image into the file-system
 \item Limit the number of files in the CVMFS catalogs 
 \item Minimize the complexity of managing the filesystem itself
 \end{itemize}
