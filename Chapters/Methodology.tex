@@ -8,23 +8,73 @@ We focus on Singularity because is a widely deployed system in HPC and on
 docker thin-images because it allow the user to use the Docker infrastructure
 to run images whose content is distributed with a read only file-system.
 
-The first section will analyze the file-system structure to host the Docker
-images to run with Singularity. We will explain how we created a hierarchical
-structure similar to the one of the docker registries while keeping the
-repository maintainable and without putting too much pressure in the
-sub-catalog system.
+The section \ref{sec:methodology-high-level} will provide a high level overview
+of the proposed file-system structure.
 
-The second section will analyze how we store the content used by the thin-images
-Docker plugin. Structural similarities between Docker images and Docker layers
-will drive us to adopt a very similar solution to avoid stressing the
-sub-catalog system. The sharing of layers between different docker images will
-allow us to avoid repeating work, but it will introduce difficulties during the
-deletion of the image itself that we will solve using a reference count system.
+The section \ref{sec:methodology-singularity} will analyze the file-system
+structure to host the Docker images to run with Singularity. We will explain
+how we created a hierarchical structure similar to the one of the docker
+registries while keeping the repository maintainable and without putting too
+much pressure in the sub-catalog system.
 
-The last section will show how we keep track of the images already present in
-the file-system.
+The section \ref{sec:methodology-docker} will analyze how we store the content used
+by the thin-images Docker plugin. Structural similarities between Docker images
+and Docker layers will drive us to adopt a very similar solution to avoid
+stressing the sub-catalog system. The sharing of layers between different
+docker images will allow us to avoid repeating work, but it will introduce
+difficulties during the deletion of the image itself that we will solve using a
+reference count system.
+
+Finally the section \ref{sec:methodology-keep-track} will show how we keep
+track of the images already present in the file-system.
+
+\section{High Level overview of the proposed file system}
+\label{sec:methodology-high-level}
+
+In this section we are providing an high level view of the proposed file-system
+structure, the details for the Singularity runtime will follow on section
+\ref{sec:methodology-singularity} while the details for the
+\texttt{cvmfs/graphdriver} plugin will follow on section
+\ref{sec:methodology-docker}.
+
+The propose file-system provide two main structure. A non-hidden set of
+directories that host the unpacked images to run with Singularity and a hidden
+folder to host the layers used by the \texttt{cvmfs/graphdriver} Docker plugin.
+Along with these structure another hidden directory will contains metadata
+information about the Docker images already in the repository.
+
+The directories that host the unpacked Docker images have the same hierarchical
+structure of the Docker structure as mentioned in \ref{sec:containers}, hence
+the first directory is the name of the registry that host the image, it follow
+the namespace which refers to the user of the organization responsible for the
+image and the last level is the image name along with the tag.
+
+The directory that host the layers of the Docker images can conceptually be a
+flat structure simply containing the layers each identified by its digest.
+However a simple flat structure will put too much pressure in the catalog
+system so we will aggregate layers that share the same digest prefix and create
+a sub-catalog for each aggregation.
+
+The hidden metadata folder will follow the same hierarchical structure of
+Docker images that allow to quickly locate the metadata information of an image
+given just the name of the image itself.
+
+\begin{figure}
+\dirtree{%
+.1 /cvmfs/unpacked.cern.ch.
+.2 registry.hub.docker.com.
+.3 library.
+.4 centos:centos7.
+.2 .layers/.
+.2 .metadata/.
+}
+\caption{High level visualization of the proposed file-system}
+\label{fig:high-level-fs}
+\end{figure}
+
 
 \section{Singularity Images}
+\label{sec:methodology-singularity}
 
 To run Docker images using Singularity is sufficient to start the singularity
 executable providing as input the directory where the image is been unpacked.
@@ -32,7 +82,7 @@ In this section we are going to show how we structure the file-system in a way
 that allow users to easily discover and run unpacked docker images using
 Singularity while keeping the file-system easy to maintain.
 
-As mentioned in \ref{subsec:singularity-docker-distribution} docker images have
+As mentioned in \ref{sec:containers} docker images have
 a hierarchical structure.  The first level of the hierarchy is the docker
 registry where the image is hosted.  The most common registries in our case are
 the official docker hub \footnote{\texttt{registry.hub.docker.com}} and the
@@ -133,6 +183,12 @@ all “super-directories” and each one contains only the file-systems that sta
 with “0c”, “2c”, …, “ea” respectively.  Note the case of “ea” that contains
 file-systems of multiple images whose digest start with “ea”.
 
+However, to relieve pressure from the catalog system is not sufficient to
+simply aggregate the images into "super-directories", we also need to create a
+sub-catalog for each "super-directory." Moreover, since each image can contains
+itself a lot of files we decide to create a sub-catalog also for each unpacked
+image.
+
 Another positive side-effect of the use of symbolic links is that symbolic
 links manipulation is defined as atomic in the POSIX standard.
 
@@ -140,6 +196,7 @@ The use of "super-directories" is necessary for limits in the implementation of
 CVMFS and they are not necessary on an abstract read-only file-system.
 
 \section{Docker Thin Images}
+\label{sec:methodology-docker}
 
 While for running docker images using Singularity it is sufficient to have the
 image unpacked in a simple directory running docker containers using the
@@ -290,6 +347,7 @@ The complete structure for storing docker images is the one showed in
 \ref{fig:docker-layer-structure}
 
 \section{Keeping track of the work already done}
+\label{sec:methodology-keep-track}
 
 To avoid to perform duplicated work is necessary to keep track of which image
 is already been added to the file-system. The same information may be used by
