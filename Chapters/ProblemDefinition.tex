@@ -2,26 +2,21 @@
 \chapter{Problem Definition}\label{ch:ProblemDefinition}
 %************************************************
 
-In the previous sections we addressed how CERN has overcome the challenge of
-software distributions using CVMFS. Unfortunately this is not enough since
-run-time dependencies between software components can break application that
-instead are running perfectly fine in a different environment.
+In the Background on chapter \ref{ch:background} we addressed how CERN has
+overcome the challenge of software distributions using CVMFS. Unfortunately
+this is not enough since run-time dependencies between software components can
+break application that instead are running perfectly fine in a different
+environment.
 
-A possible solution to this problem is the use of container technology.
-Packaging an application and all its dependencies in an immutable environment
-where it can be fully tested in isolation and then, when we are confident that
-the environment capture all the possible run-time dependencies, deploy not the
-single application, but the application along with all its environment.
+A possible solution to this problem is the use of container technology and we
+explore how both Singularity and Docker with the \texttt{cvmfs/graphdriver}
+plugin are capable to run Docker images hosted in CVMFS avoiding to download
+unnecessary from remote host saving bandwidth.
 
-The industry already provide the necessary software for running containers,
-however the distribution of the content of the containers itself still relies
-on downloading all the possibly necessary file before to running the
-computation that introduce a waste of time and network bandwidth. 
-
-In this work we aim to create a read-only file-system structure implementable
-in CVMFS that will allow us to bridge together the efficient content
-distribution provide by CVMFS with the encapsulation (NON È IL TERMINE
-CORRETTO) provide by container technologies.
+In this work we aim to introduce a read-only file-system structure
+implementable in CVMFS that will allow us to bridge together the efficient
+content distribution provide by CVMFS with the encapsulation of runtime
+dependencies provide by container technologies.
 
 This work will focus on a specific container technology, Docker. Indeed we
 focus on describe a file-system structure suitable to run Docker images using
@@ -32,7 +27,26 @@ The proposed file-system structure aims to the following goals:
 \item Minimize the amount of space required
 \item Minimize the start up time of containers
 \item Minimize the time necessary to add a new docker image into the file-system
-\item Limit the number of files in the CVMFS catalogs 
-\item Minimize the complexity of managing the filesystem itself
+\item Minimize the number of files in the CVMFS sub-catalogs 
+\item Minimize the complexity of managing the files-ystem itself
+\item Provide a great usability for the users.
 \end{itemize}
 
+Some of those goal can be measured to asses if we were successful or not, in
+particular we are going to:
+
+\begin{itemize}
+\item Compare the amount of space required by the CVMFS repository versus the
+        amount of space required for each layer.
+\item Compare the start-up time of containers hosted in CVMFS versus the
+        start-up time of containers not hosted on CVMFS
+\item Provide the distribution of number of files in each sub-catalog
+\item Measure the complexity of managing the file-system using as a proxy the
+        cyclomatic complexity of the software that actually create and manage
+                the file-system.
+\end{itemize}
+
+Unfortunately we didn't find usable proxy for measuring the usability of the
+file-system structure nor it make sense to measure the time necessary to add a
+new Docker image into the file-system since it depends on too many variable to
+provide a useful measure.
