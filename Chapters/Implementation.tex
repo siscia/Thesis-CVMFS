@@ -2,103 +2,165 @@
 \chapter{Implementation}\label{ch:Implementation}
 %************************************************
 
-In this chapter we are going to explore how the ingestion inside CVMFS is been implemented.
+In this chapter we are going to explore how the ingestion inside CVMFS is been
+implemented.
 
-At first we will describe the write interface of CVMFS, then we are going to talk how we decide to ingest Singularity images.
+At first we will describe the write interface of CVMFS, then we are going to
+talk how we decide to ingest Singularity images.
 
-We will move on to describe the challenges in ingesting docker images while transforming them into docker thin-images, hence we will explore the custom modification done to CVMFS in order to accomodate the needs of layer ingestion.
+We will move on to describe the challenges in ingesting docker images while
+transforming them into docker thin-images, hence we will explore the custom
+modification done to CVMFS in order to accomodate the needs of layer ingestion.
 
-We will then explore how all the bookkeeping of images and layers is manages. Then we are going to understand how the images are removed from the filesystem.
+We will then explore how all the bookkeeping of images and layers is manages.
+Then we are going to understand how the images are removed from the filesystem.
 
 Finally we will show the interface to the administrator.
 
 \section{CVMFS Write Interface}
 
-CVMFS provides a transactional interface, hence is possible to open a transaction, modify the filesystem and then either publish the modification or abort the transaction. Those actions are carried out respectively by the command `cvmfs\_server transaction`, `cvmfs\_server publish` and `cvmfs\_server abort`.
+CVMFS provides a transactional interface, hence is possible to open a
+transaction, modify the filesystem and then either publish the modification or
+abort the transaction. Those actions are carried out respectively by the
+command `cvmfs\_server transaction`, `cvmfs\_server publish` and `cvmfs\_server
+abort`.
 
-When a transaction is open the modifications of the filesystem can be carried out with standard linux commands or even using a graphical file explorer. Moreover is possible to test locally the new filesystem without actually commit the changes.
+When a transaction is open the modifications of the filesystem can be carried
+out with standard linux commands or even using a graphical file explorer.
+Moreover is possible to test locally the new filesystem without actually commit
+the changes.
 
-Finally is important to keep in mind that only a single transaction can be open at any given time, the system will refuse to open a second transaction. 
+Finally is important to keep in mind that only a single transaction can be open
+at any given time, the system will refuse to open a second transaction. 
 
 \section{Singularity Ingestion}
 
 The step to ingest a singularity images are pretty straightforward.
 
-Initially the image is downloaded from the remote registry and stored in a temporary area. The download is carried out by Singularity itself, in order to minimize the possibilities of inconsistency or of error. Once the download finish successfully we start the real ingestion phase.
+Initially the image is downloaded from the remote registry and stored in a
+temporary area. The download is carried out by Singularity itself, in order to
+minimize the possibilities of inconsistency or of error. Once the download
+finish successfully we start the real ingestion phase.
 
 The first step of the ingestion is to open a transaction in CVMFS.
 
-Once we open the transaction we copy the temporary directory into the CVMFS filesystem under the “.flat/” directory.
+Once we open the transaction we copy the temporary directory into the CVMFS
+filesystem under the “.flat/” directory.
 
 Then we commit the first transaction.
 
 A second transaction takes care of creating the symbolic link describe above.
 
-This few step are sufficient to make the Singularity images available through CVMFS.
+This few step are sufficient to make the Singularity images available through
+CVMFS.
 
 \subsection{Docker Ingestion}
 
 Ingest docker images is much more complex than ingesting the Singularity one.
 
-The first big difference is that during the ingestion is necessary to create also the thin images that then will be distributed through the standard docker registries.
+The first big difference is that during the ingestion is necessary to create
+also the thin images that then will be distributed through the standard docker
+registries.
 
-Another difference is the necessities to keep reference to the layers so that is possible to delete layers when they are not necessary anymore.
+Another difference is the necessities to keep reference to the layers so that
+is possible to delete layers when they are not necessary anymore.
 
 \subsection{CVMFS Ingestion of Tarball}
 
-In order to make more ergonomic the ingestion of docker images we decide to add a new command to CVMFS, the `ingest` command.
+In order to make more ergonomic the ingestion of docker images we decide to add
+a new command to CVMFS, the `ingest` command.
 
-The `ingest` command takes as input a tarball and a location. The command expand the tarball into the location materializing all the files.
+The `ingest` command takes as input a tarball and a location. The command
+expand the tarball into the location materializing all the files.
 
-The command automatically open and commit the transaction, hence is possible to have only a single concurrent ingestion.
+The command automatically open and commit the transaction, hence is possible to
+have only a single concurrent ingestion.
 
 \subsection{Docker Ingestion Algorithm}
 
 The first step is to download the manifest of the docker image.
 
-In the manifest is describe which layers compose the image, hence we start to download each layer.
+In the manifest is describe which layers compose the image, hence we start to
+download each layer.
 
-The layers are all stored first in a temporary location, then each one of them is ingested inside the CVMFS file system using the `ingest` command under the subdirectory “.layers” as described above.
+The layers are all stored first in a temporary location, then each one of them
+is ingested inside the CVMFS file system using the `ingest` command under the
+subdirectory “.layers” as described above.
 
-With the information about the layers necessary for an image we can start to create the docker thin image, as soon as the thin-image is created we proceed to upload it to the docker registry.
+With the information about the layers necessary for an image we can start to
+create the docker thin image, as soon as the thin-image is created we proceed
+to upload it to the docker registry.
 
-Then, after all layers have been ingested we write the references necessary to delete the layers in an hidden folder.
+Then, after all layers have been ingested we write the references necessary to
+delete the layers in an hidden folder.
 
-Finally, if no error happened during the whole process we store, in another hidden folder, information about the successful conversion and ingestion of the image.
+Finally, if no error happened during the whole process we store, in another
+hidden folder, information about the successful conversion and ingestion of the
+image.
 
 \section{Garbage Collection of Images}
 
-We have only described how we add new images to the CVMFS filesystem, however updating an image is quite common, especially if the images are refered by mutable tag such as “latest” which actually represent the latest version of a particular application.
+We have only described how we add new images to the CVMFS filesystem, however
+updating an image is quite common, especially if the images are refered by
+mutable tag such as “latest” which actually represent the latest version of a
+particular application.
 
-During the update of an image we avoid to immediately delete the files from the CVMFS repository, as mentioned this could cause disruption of service for users.
+During the update of an image we avoid to immediately delete the files from the
+CVMFS repository, as mentioned this could cause disruption of service for
+users.
 
-Instead we keep track of all the images that are not necessary anymore in a specific file, the “remove-schedule.json” file which is stored in the hidden directory “.metadata/” just below the main root of the CVMFS filesystem. The remove-schedule.json files contains a collections of the manifest of all the images we are not interested in anymore.
+Instead we keep track of all the images that are not necessary anymore in a
+specific file, the “remove-schedule.json” file which is stored in the hidden
+directory “.metadata/” just below the main root of the CVMFS filesystem. The
+remove-schedule.json files contains a collections of the manifest of all the
+images we are not interested in anymore.
 
-When is time to actually delete all the old images we scan the “remove-schedule.json” file and we carry out the actual remotion of the images. 
+When is time to actually delete all the old images we scan the
+“remove-schedule.json” file and we carry out the actual remotion of the images. 
 
-The remotion of a singularity image is quite simple, indeed, is sufficient to remove the whole directory.
+The remotion of a singularity image is quite simple, indeed, is sufficient to
+remove the whole directory.
 
-Removing the layers of the docker images is more complex. At first we need to identify all the layers that we need to check. This is simple since this information is stored in the manifest itself which is stored in the “remove-schedule.json” file.
+Removing the layers of the docker images is more complex. At first we need to
+identify all the layers that we need to check. This is simple since this
+information is stored in the manifest itself which is stored in the
+“remove-schedule.json” file.
 
-Then, for each layer we obtain the list of images that need the layer itself. From that list we remove the image we are eliminating from the filesystem. If the list is now empty we proceed to remove also that specific layer from the filesystem.
+Then, for each layer we obtain the list of images that need the layer itself.
+From that list we remove the image we are eliminating from the filesystem. If
+the list is now empty we proceed to remove also that specific layer from the
+filesystem.
 
 \section{Administrator Interface}
 
-In order to store images in the CVMFS filesystem is necessary to know what image store, in which repository store it and how to call the respective thin-image.
+In order to store images in the CVMFS filesystem is necessary to know what
+image store, in which repository store it and how to call the respective
+thin-image.
 
-We decide to call the triplet (Input image, CVMFS Repository, Output image) a “wish”.
+We decide to call the triplet (Input image, CVMFS Repository, Output image) a
+“wish”.
 
-Now, we need a way to express a list of those wishes. We opted for a simple YAML file that store a specialization of a generic “wish list”. In the YAML file we specify a list of Input images, only a single CVMFS repository and a single syntactical transformation for the Output images.
+Now, we need a way to express a list of those wishes. We opted for a simple
+YAML file that store a specialization of a generic “wish list”. In the YAML
+file we specify a list of Input images, only a single CVMFS repository and a
+single syntactical transformation for the Output images.
 
-The syntactical transformation depends on the input image and is applied to obtain the final name of the output image.
+The syntactical transformation depends on the input image and is applied to
+obtain the final name of the output image.
 
-There are several benefits of this approach:
-\begin{enumerate}
-\item The YAML file is a simple text file that is simple to understand and to edit
-\item It can be hosted on version control system
+There are several benefits of this approach: 
+\begin{enumerate} 
+\item The YAML file is a simple text file that is simple to understand and to
+        edit 
+\item It can be hosted on version control system 
 \end{enumerate}
 
-Since the wish list can be hosted on a version-control system like Github or Gitlab and since it is a simple file to modificate it allow a Pull-Request based approach to modificate the wish list itself.
+Since the wish list can be hosted on a version-control system like Github or
+Gitlab and since it is a simple file to modificate it allow a Pull-Request
+based approach to modificate the wish list itself.
 
-Users who wish a new image to be added to the repository can simply make a pull request adding their image to the wish list. The administrator of the system act as a gatekeeper, inspect the image that is been required to be add and decide if add the image or not.
+Users who wish a new image to be added to the repository can simply make a pull
+request adding their image to the wish list. The administrator of the system
+act as a gatekeeper, inspect the image that is been required to be add and
+decide if add the image or not.
 
