@@ -163,23 +163,24 @@ allows to keep each catalog small improving the query time.
 \subsection{CVMFS Details}\label{subsec:cvmfs-details}
 
 CVMFS is implemented using the Client-Server architecture. The server is
-responsible to manage the content of the repository and to expose it via HTTP API.
-The client is installed in the host machine and is responsible to expose the
-content of the repository to the users and it is implemented as a FUSE
+responsible to manage the content of the repository and to expose it via HTTP
+API.  The client is installed in the host machine and is responsible to expose
+the content of the repository to the users and it is implemented as a FUSE
 daemon which implements all the system calls necessary for a read-only
-file-system. 
+file-system.
 
 When a CVMFS file-system is mounted, it starts by reading a configuration file
-which describes each repository. The client then downloads a simple text
-file which points to the catalog of the repository. Once the catalog is
-downloaded the client has all the information necessary to start responding to
-the system calls performed by the user.
+which describes each repository. The client then downloads a simple text file
+which points to the catalog of the repository. Once the catalog is downloaded
+the client has all the information necessary to start responding to the system
+calls performed by the user.
 
 As an example, when the user requires a \texttt{stat} system call against a
-file, the client reads from the catalog all the information about the file like,
-size, permission, mode, etc.. and replies with them. Instead when the user requires to read from a file, the client first downloads the
-file from the server, stores it into a local cache and passes through each read
-operation to the local copy.
+file, the client reads from the catalog all the information about the file
+like, size, permission, mode, etc.. and replies with them. Instead when the
+user requires to read from a file, the client first downloads the file from the
+server, stores it into a local cache and passes through each read operation to
+the local copy.
 
 This approach allows to download only the file really required, since all the
 other system calls can be served by just reading from the catalog. However this
@@ -188,17 +189,16 @@ This strategy works very well if the reading latency of a file is not a major
 concern and if reading from the catalog is fast. However, if the catalog grows
 too big, then the queries become too slow. 
 
-To overcome this limitation the sub-catalogs were introduced.
-A sub-catalog is exactly like the normal catalog, but while the catalog refers
-to the whole file-system tree, a sub-catalog refer to a smaller sub tree of the
-file-system. In order to avoid confusion, we will refer to the root-catalog as
-the catalog that includes the root of the file-system and to sub-catalog to all
-the other catalogs in the file-system. The root-catalog, of course, embeds
-several sub-catalogs, and each sub-catalog can, recursively, embed another
-sub-catalog.
+To overcome this limitation the sub-catalogs were introduced.  A sub-catalog is
+exactly like the normal catalog, but while the catalog refers to the whole
+file-system tree, a sub-catalog refer to a smaller sub tree of the file-system.
+In order to avoid confusion, we will refer to the root-catalog as the catalog
+that includes the root of the file-system and to sub-catalog to all the other
+catalogs in the file-system. The root-catalog, of course, embeds several
+sub-catalogs, and each sub-catalog can, recursively, embed another sub-catalog.
 
 When is required to read information about a file, the client starts by looking
-into the root catalog and then it follows the sub-catalogs structure until it 
+into the root catalog and then it follows the sub-catalogs structure until it
 finds the required file.
 
 \section{Containers}
@@ -300,13 +300,44 @@ to content not available anymore on CVMFS, hence it will fail to run.
 
 Singularity \citep{singularity:home} is another container runtime, it provides
 its own image format but is capable to run standard Docker images
-\cite{singularity:docker} as well.  Moreover it is capable of running containers,
-also Docker containers, directly from a directory containing the unpacked
-container file-system itself \cite{singularity:run}. 
+\cite{singularity:docker} as well.  Moreover it is capable of running
+containers, also Docker containers, directly from a directory containing the
+unpacked container file-system itself \cite{singularity:run}.
 
 Given the Singularity capability to run Docker containers directly from a
 directory containing the unpacked Docker image file-system its integration with
-CVMFS is simpler that the one with Docker itself. Indeed it is sufficient to host
-the directory containing the unpacked file-system of the Docker image in CVMFS.
+CVMFS is simpler that the one with Docker itself. Indeed it is sufficient to
+host the directory containing the unpacked file-system of the Docker image in
+CVMFS.
 
+\section{Problem Definition}
+
+We have introduce how CERN has overcome the challenges of software distribution
+using CVMFS. Unfortunately this is not enough since run-time dependencies
+between software components can break application that instead are running
+perfectly fine in a different environment.
+
+Since containers pack up all their runtime dependencies in a standard
+environment they are a suitable solution for this problem. However containers
+are distributed as big tar files which is against the design and working
+principle of CVMFS.
+
+Both CVMFS and containers aims to solve the similar problem of server
+provisioning, however they made different trade-offs. CVMFS opted for an
+efficient distribution of the content, however this makes difficult and
+inconvenient to pack all the runtime dependencies of a particular application.
+Containers opted to make each application self-contained so that the
+application can run reliably also on different computer environment, however
+they loose efficiency in the distribution of their content.
+
+We don't believe that efficient content distribution and application
+containerization are contrasting goals, hence in this thesis will attack the
+problem of how to efficiently distribute the content of containers.
+
+In Chapter \ref{ch:Methodology} we will present a read-only file system
+structure suitable to host container content, moreover we will show how we
+implemented such file system structure on CVMFS in Chapter
+\ref{ch:Implementation}. Finally we will show the result of such work on
+Chapter \ref{ch:Results}. Possible enhancement to this work are finally exposed
+on Chapter \ref{ch:FutureWorks}.
 
