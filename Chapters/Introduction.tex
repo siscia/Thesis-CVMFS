@@ -263,13 +263,44 @@ use of plugins \cite{docker:plugin} and that the plugin allows us to run what
 are called "thin-images".
 
 \textit{Thin-images} are Docker images that are created starting from standar
-(\textit{fat}) Docker images. The content of a \textit{thin-image} is only a simple
-\texttt{json} file whose content is the list of layers needed by the original
-\textit{fat-image} and where to find them in the host file-system, we call this file
-the \textit{recipe}. \textit{Thin-images} can be executed only if the Docker daemon have
-enabled the \texttt{cvmfs/graphdriver} plugin, indeed the plugin is able to read
-the content of the thin-image, mount the original layers inside the container,
-and finally execute the application \cite{graphdriver-plugin}.
+(\textit{fat}) Docker images. The content of a \textit{thin-image} is only a
+simple \texttt{json} file whose content is the list of layers needed by the
+original \textit{fat-image} and where to find them in the host file-system, we
+call this file the \textit{recipe} an example of \textit{recipe} file is show
+on Listing \ref{lst:thin-example}. \textit{Thin-images} can be executed only if
+the Docker daemon have enabled the \texttt{cvmfs/graphdriver} plugin, indeed
+the plugin is able to read the content of the thin-image, mount the original
+layers inside the container, and finally execute the application
+\cite{graphdriver-plugin}.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Example of a \textit{recipe} file of a Docker \textit{thin image}},label={lst:thin-example}]
+{
+  "version": "1.0",
+  "origin": "https://registry.hub.docker.com/library/python:latest",
+  "layers": [
+    {
+      "digest": "bc9ab7...0257b7",
+      "url": "cvmfs://thin.osg.cern.ch/.layers/bc/bc9ab7...0257b7/layerfs"
+    },
+    {
+      "digest": "193a63...110d7f",
+      "url": "cvmfs://thin.osg.cern.ch/.layers/19/193a63...110d7f/layerfs"
+    },
+    {
+      "digest": "e5c3f8...818580",
+      "url": "cvmfs://thin.osg.cern.ch/.layers/e5/e5c3f8...818580/layerfs"
+    },
+    {
+      "digest": "b61a0d...b615a9",
+      "url": "cvmfs://thin.osg.cern.ch/.layers/b6/b61a0d...b615a9/layerfs"
+    }
+  ]
+}
+\end{lstlisting}
+\end{minipage}
+
+
 
 If the files necessary to run the \textit{thin-images} are distributed by CVMFS, it is
 possible to run docker containers without downloading any unnecessary content.
