@@ -4,27 +4,35 @@
 
 In this chapter we are going to explore how the ingestion inside CVMFS is been
 implemented. At first we will describe the write interface of CVMFS, then we
-are going to talk how we decide to ingest Singularity images. We will move on
-to describe how we ingest docker \textit{fat images} while transforming them
-into docker \textit{thin-images} suitable to be used with the
+are going to talk how we unpack Docker images to use them with Singularity. We
+will move on to describe how we ingest Docker \textit{fat images} while
+transforming them into Docker \textit{thin-images} suitable to be used with the
 \textit{cvmfs/graphdriver} plugin, moreover we will explore the custom
 modification done to CVMFS in order to accommodate the needs of layer
 ingestion. We will then explore how all the bookkeeping of images and layers is
 manages.  Then we are going to understand how the images are removed from the
-filesystem. Finally we will show the interface to the administrator.
+file system. Finally we will show the interface given to the administrator.
+
+All the work presented in this chapter is implemented in the
+\textit{repository-manager}, a command line utility written in the Go(lang)
+language \cite{repository-manager}.
 
 \section{CVMFS Write Interface}
 
-CVMFS provides a transactional interface, hence is possible to open a
-transaction, modify the filesystem and then either publish the modification or
-abort the transaction. Those actions are carried out respectively by the
-command `cvmfs\_server transaction`, `cvmfs\_server publish` and `cvmfs\_server
-abort`. When a transaction is open the modifications of the filesystem can be
-carried out with standard linux commands or even using a graphical file
-explorer.  Moreover is possible to test locally the new filesystem without
-actually commit the changes. Of course these actions are not available to the
-clients that have access only to a read-only interface. It possible to modify
-the file system only from the `Stratum-0`. 
+As mentioned in \ref{subsec:cvmfs-details} CVMFS is implemented with a
+Client-Server architecture, while the client is strictly read-only, the server
+does provide a write interface. What we write in the server is what the client
+is then able to read.  The write interface of CVMFS is a transactional
+interface, hence is possible to open a transaction, modify the file system and
+then either publish the modification or abort the transaction. Those actions
+are carried out respectively by the command `cvmfs\_server transaction`,
+`cvmfs\_server publish` and `cvmfs\_server abort`. 
+When a transaction is open the server file system is a standard writable linux
+file system, hence is possible to modify it using the standard POSIX API, Linux
+commands or even graphical file explores.  Moreover is possible to test locally
+the new file system without actually commit the changes. Of course these
+actions are not available to the clients that have access only to a read-only
+interface. 
 
 Finally is important to keep in mind that only a single transaction can be open
 at any given time, CVMFS will refuse to open a second transaction. 
@@ -41,7 +49,8 @@ we start the real ingestion phase.
 The first step of the ingestion is to open a transaction in CVMFS. Once we open
 the transaction we copy the temporary directory into the CVMFS filesystem under
 the “.flat/” directory. Then we commit the first transaction. A second
-transaction takes care of creating the symbolic link describe above.
+transaction takes care of creating the symbolic link as describe in
+\ref{sec:methodology-singularity}.
 
 This few step are sufficient to make the Singularity images available through
 CVMFS. The listing \ref{lst:ingest-singularity} show the details of the
@@ -72,88 +81,114 @@ EndFunction
 \end{lstlisting}
 \end{figure}
 
+\section{Docker Ingestion}
 
+Converting Docker \textit{fat images} into Docker \textit{thin images} is a
+more complex project than simply make the unpacked image available to use with
+Singularity. We will explore all the details of this process in this section.
 
-\subsection{Docker Ingestion}
+In the first part we will introduce how CVMFS is able to directly ingest tar
+file which is format used to distribute Docker images as mention in
+\ref{sec:container}. The we will explore how starting from the Docker manifest
+we add the layers to the CVMFS file system, then we show how we create the
+\textit{thin image} itself.
 
-Ingest docker images is much more complex than ingesting the Singularity one.
-
-The first big difference is that during the ingestion is necessary to create
-also the thin images that then will be distributed through the standard docker
-registries.
-
-Another difference is the necessities to keep reference to the layers so that
-is possible to delete layers when they are not necessary anymore.
+Moreover we also upload the Docker \textit{thin image} to a Docker registry.
 
 \subsection{CVMFS Ingestion of Tarball}
 
-In order to make more ergonomic the ingestion of docker images we decide to add
-a new command to CVMFS, the `ingest` command.
-
-The `ingest` command takes as input a tarball and a location. The command
-expand the tarball into the location materializing all the files.
-
-The command automatically open and commit the transaction, hence is possible to
+As mention in \ref{sec:containers} Docker layers are distributed as tar files.
+In order to support the use case of ingesting Docker layer we decide to add a
+new command to CVMFS `cvmfs\_server ingest`. The ingest command takes as input
+a tar file and a directory inside the CVMFS file system and extracts all the
+files and directory in the tar file into the directory provide as input. This
+command implicitly open and commit a CVMFS transaction, hence is possible to
 have only a single concurrent ingestion.
 
 \subsection{Docker Ingestion Algorithm}
 
-The first step is to download the manifest of the docker image.
+The first step of the algorithm is to retrieve the manifest of the Docker
+images from the Docker registry, as soon as we have the manifest the algorithm
+checks if the specific images is already been successfully ingested into the
+file system.  This check happens using the metadata stored in the
+\textit{.metadata} directory as mention in \ref{sec:methodology-keep-track}.
+The check consist in a simple comparison between the digest of the manifest of
+Docker images just downloaded and the digest of the images already stored in
+the \textit{.metadata} folder. If the images is already in the file system the
+algorithm terminate.
 
-In the manifest is describe which layers compose the image, hence we start to
-download each layer.
+The next step is to ingest every single layer of the Docker images into the
+CVMFS file system. As previously we check if the layers already exists in the
+file system itself. Since the layers are stored under a path that embeds theirs
+own digest \ref{sec:methodology-docker}, checking if a layer is already in the
+file system consist is simply checking if the folder where we would ingest the
+layer already exists or now.  If the layer already exists we move to the next
+layer of the image.
 
-The layers are all stored first in a temporary location, then each one of them
-is ingested inside the CVMFS file system using the `ingest` command under the
-subdirectory “.layers” as described above.
+The ingestion of a layer follows a similar procedure of the ingestion of an
+unpacked images, the layer is first downloaded into a temporary directory and
+then is ingested using the `cvmfs\_server ingest` command. Another option could
+have been to avoid storing the layer in the temporary directory and simply let
+the `cvmfs\_serve ingest` command read the content of tar file from
+\texttt{STDIN}, we decided against this approach since a no-negligible amount
+of times the download of the layer fails in the middle wasting all the work
+already done by the 'ingest` command.
 
-With the information about the layers necessary for an image we can start to
-create the docker thin image, as soon as the thin-image is created we proceed
-to upload it to the docker registry.
+If the ingestion of any of the layers fails we stop the whole algorithm and we
+rely on retries from the administrator in order to have the Docker image served
+on CVMFS.
 
-Then, after all layers have been ingested we write the references necessary to
-delete the layers in an hidden folder.
+After all the layers have been successfully ingested the next step of the
+algorithm is the creation of the Docker \textit{thin image}. The Docker
+\textit{thin image} is a standard Docker image which content is a single file
+\texttt{thin.json} that contains the set of layers to mount before to start the
+container itself \ref{subsec:docker-thin-images}. To create this image is
+sufficient to encode the location of layers into a \texttt{.json} file and then
+pack this file into a standard Docker image. The Docker \textit{thin image} is
+then uploaded into the Docker registry.
 
-Finally, if no error happened during the whole process we store, in another
-hidden folder, information about the successful conversion and ingestion of the
-image.
+The last step of the algorithm is to store the metadata information about the
+image just ingested in order to avoid to repeat work already done. This is done
+simply storing the manifest of the docker image in the \textit{.metadata}
+folder following the schema presented in \ref{sec:methodology-keep-track}.
 
-\section{Garbage Collection of Images}
+\section{Garbage Collection of Images}\label{sec:implementation-gc}
 
-We have only described how we add new images to the CVMFS filesystem, however
-updating an image is quite common, especially if the images are refered by
+We have only described how we add new images to the CVMFS file system, however
+updating an image is quite common, especially if the images are referred by
 mutable tag such as “latest” which actually represent the latest version of a
 particular application.
 
 During the update of an image we avoid to immediately delete the files from the
-CVMFS repository, as mentioned this could cause disruption of service for
-users.
+CVMFS repository, as mentioned in \ref{sec:methodology-docker} this could cause
+disruption of service for users.
 
 Instead we keep track of all the images that are not necessary anymore in a
-specific file, the “remove-schedule.json” file which is stored in the hidden
-directory “.metadata/” just below the main root of the CVMFS filesystem. The
-remove-schedule.json files contains a collections of the manifest of all the
-images we are not interested in anymore.
+specific file, the \texttt{remove-schedule.json} file which is stored in the
+hidden directory \textit{.metadata/} just below the main root of the CVMFS file
+system. The \texttt{remove-schedule.json} files contains a collections of the
+manifest of all the images we are not interested in anymore.
 
 When is time to actually delete all the old images we scan the
-“remove-schedule.json” file and we carry out the actual remotion of the images. 
+\texttt{remove-schedule.json} file and we carry out the actual removal of the
+images. 
 
-The remotion of a singularity image is quite simple, indeed, is sufficient to
+The removal of a singularity image is quite simple, indeed, is sufficient to
 remove the whole directory.
 
 Removing the layers of the docker images is more complex. At first we need to
 identify all the layers that we need to check. This is simple since this
 information is stored in the manifest itself which is stored in the
-“remove-schedule.json” file.
+\texttt{remove-schedule.json} file.
 
 Then, for each layer we obtain the list of images that need the layer itself.
-From that list we remove the image we are eliminating from the filesystem. If
+From that list we remove the image we are eliminating from the file system. If
 the list is now empty we proceed to remove also that specific layer from the
-filesystem.
+file system.
 
 \section{Administrator Interface}
 
-In order to store images in the CVMFS filesystem is necessary to know what
+In order to store images in the CVMFS file system is necessary to know what
 image store, in which repository store it and how to call the respective
 thin-image. We decide to call the triplet \texttt{<Input image, CVMFS
 Repository, Output image>} a \textit{wish}.
@@ -164,11 +199,12 @@ Input images, only a single CVMFS repository and a single syntactical
 transformation for the Output images. An example of this specific \textit{wish
 list} is show on Listing \ref{lst:wish-list}.
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Example of a small \textit{wish-list}},label={lst:wish-list}]
 version: 1
 user: smosciat
-cvmfs\_repo: 'thin.osg.cern.ch'
-output\_format: '$(scheme)://gitlab-registry.cern.ch/smosciat/thin-osg/$(image)'
+cvmfs_repo: 'thin.osg.cern.ch'
+output_format: '$(scheme)://gitlab-registry.cern.ch/smosciat/thin-osg/$(image)'
 input:
     - 'https://registry.hub.docker.com/library/centos:latest'
     - 'https://registry.hub.docker.com/library/centos:centos6'
@@ -193,6 +229,7 @@ input:
     - 'https://registry.hub.docker.com/efajardo/docker-cms:tensorflow'
     - 'https://registry.hub.docker.com/lincolnbryant/atlas-wn:latest'
 \end{lstlisting}
+\end{minipage}
 
 The syntactical transformation depends on the input image and is applied to
 obtain the final name of the output image. It simply replace the placeholder
@@ -227,4 +264,29 @@ new image to be added to the repository can simply make a pull request adding
 their image to the wish list. The administrator of the system act as a
 gatekeeper, inspect the image that is been required to be add and decide if add
 the image or not.
+
+\section{The \textit{repository-manager} command line tool}
+
+All the work presented in this chapter is been implemented in the
+\textit{repository-manager} \cite{repository-manager} command line tool. The
+tool provide to the administrator of the repository just two main command. The
+\textit{convert} command and the \textit{garbage-collect} command.
+
+The \textit{convert} command takes as input a \textit{wish list} as show in
+\ref{lst:wish-list} and follow all the procedure to add the unpacked Docker
+images to be used with Singularity to the repository as well as creating the
+several Docker \textit{thin images} and push them into the Docker registries.
+Moreover, whenever it need to delete an image it add it to the
+\texttt{remove-schedule.json} file. 
+
+The actual removing of the images is carried out by the
+\textit{garbage-collect} command which reads the \texttt{remove-schedule.json}
+files and carried out the removal as describe in \ref{sec:implementation-gc}.
+
+Finally another command of the utility is wort to mention, the \textit{loop}
+command simply execute the \textit{convert} command in an infinite loop, each
+time reading again the \textit{wish list} file. This allow the administrator to
+run the conversion in the back ground and set up a periodic job that update the
+\textit{wish list} file downloading it from a revision control system.
+
 
