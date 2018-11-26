@@ -19,20 +19,19 @@ language \cite{repository-manager}.
 
 \section{CVMFS Write Interface}
 
-As mentioned in \ref{subsec:cvmfs-details} CVMFS is implemented with a
-Client-Server architecture, while the client is strictly read-only, the server
+As mentioned in Section \ref{subsec:cvmfs-details} CVMFS is implemented with a
+Client-Server architecture: while the client is strictly read-only, the server
 does provide a write interface. What we write in the server is what the client
 is then able to read.  The write interface of CVMFS is a transactional
 interface, hence is possible to open a transaction, modify the file system and
 then either publish the modification or abort the transaction. Those actions
 are carried out respectively by the command `cvmfs\_server transaction`,
-`cvmfs\_server publish` and `cvmfs\_server abort`. 
-When a transaction is open the server file system is a standard writable linux
-file system, hence is possible to modify it using the standard POSIX API, Linux
-commands or even graphical file explores.  Moreover is possible to test locally
-the new file system without actually commit the changes. Of course these
-actions are not available to the clients that have access only to a read-only
-interface. 
+`cvmfs\_server publish` and `cvmfs\_server abort`.  When a transaction is open
+the server file system is a standard writable linux file system, hence is
+possible to modify it using the standard POSIX API, Linux commands or even
+graphical file explores.  Moreover is possible to test locally the new file
+system without actually commit the changes. Of course these actions are not
+available to the clients that have access only to a read-only interface. 
 
 Finally is important to keep in mind that only a single transaction can be open
 at any given time, CVMFS will refuse to open a second transaction. 
