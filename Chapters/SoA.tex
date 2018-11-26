@@ -70,4 +70,53 @@ performance may be strongly influenced by the size of the cluster.
 In this work we aim to finally bridge the two world of containers and
 distributed read-only file system like CVMFS.
 
+%************************************************
+\chapter{State of the Art }\label{ch:SoA}
+%************************************************
+
+\todo{This shorter version I believe link better, I already discussed the problem of run-time dependencies...}
+
+As we discussed on the Problem Definition on Section \ref{sec:problem} we
+trying to efficientely deliver the content of containers to a huge number of
+computing nodes.
+
+Several system have been propose to decrease the downloading time of containers
+images, all of them work \textit{ahead of runtime} trying to optimize
+for how fast the overall system is capable of delivering the whole image into
+the host. FID (Faster Image Distribution) \cite{FID} is a P2P Docker images
+distribution system that is able to accelerate the speed of distributing Docker
+images by taking full advantage of the bandwidth of not only the Docker
+Registry but also of the other nodes in the cluster, while decreasing the
+downloading time FID still require to download all the image before to run the
+computation. Another work by Anwar et all. \cite{210500} characterize the
+workload of large-scale registries in order to derive design implication for
+more optimize registries, still they are working to optmize the time necessary
+to serve and download the whole image from the registry.
+
+While the aim of this work is still to decrease the start up time of uncached
+containers we took a different road. While the previous works focus on optimize
+the delivering time of the whole content image we decide to focus on minimize
+the amount of content that the client needs to download which of course lead to
+shorter start up time for the containers and also on saving bandwidth.
+
+Few other system have been proposed to address the problem using a similar
+architecture. 
+
+The \textit{cvmfs/graphdriver} \cite{graphdriver-plugin} allows us to run
+Docker images starting from a \textit{recipe} file that list the layers to
+mount and their location in the file system. Unfortunately a way to provide the
+\textit{thin images} was not provided, moreover it wasn't provide a way to
+structure the file system itself. 
+
+Slacker \cite{slacker} tackle the same problem but it use a very different
+implementation. Their work is based on NFS and flatten layers. All the layer of
+an image get flatten into a single layer, and such layer stored as a single
+file into a NFS shared between the Docker Registries and the Docker Client.
+While \textit{cvmfs/graphdriver} share a set of layers as Docker images,
+Slacker share a simple reference to the file stored in the NFS. Slacker is able
+to reach very interesting performance thank to the implementation of the NFS
+they use that relies on network disks. We lack the details about the NFS used
+by Slacker (Tintri 620) but we believe that their performance may be strongly
+influenced by the size of the cluster.
+
 

@@ -327,7 +327,7 @@ the user try to run the same images, it will not download it again from the
 registry but it will use the image already cached, referring
 to content not available anymore on CVMFS, hence it will fail to run.
 
-\subsection{Singularity}
+\subsection{Singularity}\label{subsec:singularity}
 
 Singularity \citep{singularity:home} is another container runtime, it provides
 its own image format but is capable to run standard Docker images
@@ -341,7 +341,7 @@ CVMFS is simpler that the one with Docker itself. Indeed it is sufficient to
 host the directory containing the unpacked file-system of the Docker image in
 CVMFS.
 
-\section{Problem Definition}
+\section{Problem Definition}\label{sec:problem}
 
 We have introduce how CERN has overcome the challenges of software distribution
 using CVMFS. Unfortunately this is not enough since run-time dependencies
@@ -360,10 +360,6 @@ inconvenient to pack all the runtime dependencies of a particular application.
 Containers opted to make each application self-contained so that the
 application can run reliably also on different computer environment, however
 they loose efficiency in the distribution of their content.
-
-We don't believe that efficient content distribution and application
-containerization are contrasting goals, hence in this thesis will attack the
-problem of how to efficiently distribute the content of containers.
 
 Efficient content distribution and application containerization are not
 contrasting goals, and, as such in this thesis we will tackle the problem of
