@@ -2,58 +2,72 @@
 \chapter{State of the Art}\label{ch:SoA}
 %************************************************
 
+Other than the distribution of content, CERN faced the problem of managing
+run-time dependencies. A possible solution to this problem would be to
+statically link all the dependencies, but this would generate extremely big
+binaries.  Another solution would be to carefully managing the all the software
+installed on the machine, including all the recursive dependencies. However this
+clash with the WLCG model where jobs can migrate from a data center to another
+along with their dependencies.  Moreover sometimes even a very careful
+installation is not sufficient since is possible that two application that
+could run on the same machine have clashing dependencies.
 
-In this chapter we are going to explore what tools and methodologies are already available and know to provision software on a computing cluster.
-We will explore what is used in the industry as well as what was developed specifically inside the CERN environment
-We will also focus on how those system works with container technology, in this particular chapter, we will focus just on Docker since Singularity is not widely used in the industry and none of the following tools support it.
+The problem of how to manage runtime dependency is been solved outside CERN in
+several different way.
 
-\section{Ansible}
+On small scale is possible to use simple package managers that automatically
+install the dependencies, however they suffer of few different problem. First
+and foremost in case of dependencies clashing the package manager simply refuse
+to install the required package, which is not an acceptable solution. Then at
+the scale of the WLCG the package manager quickly become a bottleneck with the
+respect of the bandwidth necessary to distribute the content but also with the
+respect of the size of the internal databases.
 
-Ansible is a provisioning system based on the concept of playbooks and inventory.
+Another possible solution is the use of containers. Packaging all the runtime
+dependencies along the application code in an immutable file system allow
+containers to exactly reproduce the same environment and condition to ensure
+smooth operations. The use of containers however is not convenient in very
+large clusters like the WLCG, indeed the content necessary to run a container
+is distribute as few large tar files and this makes the distribution itself
+inefficient since a lot of content not useful for the application itself is
+downloaded anyway. 
 
-Playbooks are files that describe the desired final status of a server. It is include software to be installed, configuration files to be created and setted, security policies, status of services and it may also include docker images to be downloaded.
+Several system have been propose to decrease the downloading time of containers
+images, however all of them work \textit{ahead of runtime} trying to optimize
+for how fast the overall system is capable of delivering the whole image into
+the host. FID (Faster Image Distribution) \cite{FID} is a P2P Docker images
+distribution system that is able to accelerate the speed of distributing Docker
+images by taking full advantage of the bandwidth of not only the Docker
+Registry but also of the other nodes in the cluster, while decreasing the
+downloading time FID still require to download all the image before to run the
+computation. Another work by Anwar et all. \cite{210500} characterize the
+workload of large-scale registries in order to derive design implication for
+more optimize registries, still they are working to optmize the time necessary
+to serve and download the whole image from the registry.
 
-The inventory is a list of the nodes where we wish to reach the final status described in the playbook.
+While the aim of this work is still to decrease the start up time of uncached
+containers we took a different road. While the previous works focus on optimize
+the delivering time of the whole content image we decide to focus on minimize
+the amount of content that the client needs to download which of course lead to
+shorter start up time for the containers and also on saving bandwidth.
 
-The Ansible approach is declarative, indeed, we describe what we want and where we want it and then we leave it to an internal engine to reach the desired state.
+Few other system have been proposed to address the problem using a similar
+architecture. The \textit{cvmfs/graphdriver} \cite{graphdriver-plugin} allows
+us to run Docker images starting from a \textit{recipe} file that  list the
+layers to mount and their location in the file system. Unfortunately a way to
+provide the \textit{thin images} was not provided, moreover it wasn't provide a
+way to structure the file system itself. Slacker \cite{slacker} tackle the same
+problem but it use a very different implementation. Their work is based on NFS
+and flatten layers. All the layer of an image get flatten into a single layer,
+and such layer stored as a single file into a NFS shared between the Docker
+Registries and the Docker Client. While \textit{cvmfs/graphdriver} share a set
+of layers as Docker images, Slacker share a simple reference to the file stored
+in the NFS. Slacker is able to reach very interesting performance thank to the
+implementation of the NFS they use that relies on network disks. We lack the
+details about the NFS used by Slacker (Tintri 620) but we believe that their
+performance may be strongly influenced by the size of the cluster.
 
-Ansible can also be categorized as a non-intrusive provisioning system, it works using an a remote connection (SSH) to the nodes it is managing without relieing on any software been installed on the node itself.
+In this work we aim to finally bridge the two world of containers and
+distributed read-only file system like CVMFS.
 
-\section{Puppet}
-
-Puppet is another declarative provisioning system.
-
-Similarly to Ansible, also in Puppet, we describe the desired status of the servers. The big difference with Ansible is that Puppet needs a daemon, called “agent”, running on the provisioned servers. 
-
-The agent ensure that the desired configuration is keep in spite of manual changes on the machine.
-
-The agent is as well responsible to makes all the necessary changes to the system. 
-
-\section{Kubernetes}
-
-Kubernetes (K8S) is a container orchestration system based on docker for computing clusters.
-
-A central master is responsible for managing the cluster. It coordinates all the activities such as scheduling containers or rolling out updates. The worker nodes simply execute the commands from the master.
-
-\section{Package Managers}
-
-Packages managers are the standard way to install software on most linux distribution.
-
-A package is conceptually composed by an archive that contains the actual files to install on the system and by a configuration that describe where to install each file.
-
-Moreover a package describe its dependencies, dependencies that are recursively installed by the package manager.
-
-\section{Alice Software Installation System}
-
-In order to ease the load on the network the Alice collaboration opted to distribute packages using the BitTorrent protocol.
-The installation is still based on standard linux packages, but the use of a peer to peer distribution mechanism avoided to overload the central package manager.
-However, it still relies on a central authoritative BitTorrent tracker hosted at CERN itself.
-
-\section{Difference with CVMFS}
-
-All the above tools used for installing software relies on installing the software on the machine before that it is actually request, doing so, it normally moves also files that are not strictly necessary for every computation, wasting 
-
-CVMFS on the other side avoid to move any software on the machine if it is not necessary. The downloading of a file is defer to when it is necessary (on the OPEN syscall) hence only the file strictly necessary are downloaded.
-
-It results in an increase of latency  when starting an application but the bandwidth consumption is keep to the minimun.
 
