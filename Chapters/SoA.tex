@@ -2,6 +2,158 @@
 \chapter{State of the Art}\label{ch:SoA}
 %************************************************
 
+In this chapter we are going to explore the several way that are available to
+provision and install software on cluster of machines. The proposed
+methodologies will grow in complexity as the size of the cluster grow, in
+parallel we will see that the problem shift from the handling of files to the
+handling of metadata.
+
+\section{Personal machines and small clusters}
+
+Several system have been proposed to manage installation and provision of machine.
+
+The simpler approach is of course the manual approach were the source code is
+downloaded on the local machine, compiled and finally installed. While this
+works fine for the expert user it introduces a lot of difficulties. The
+compilation part is error prone and it may requires dependencies, so the user
+must be ready to doing a lot of research and even reading makefiles if
+necessary. Moreover, if the software has run-time dependencies is necessary for
+the user to install them as well, and so recursively.
+
+Of course there is no need to re-compile the software every time, moreover
+compilation is an expensive and quite technical step that not all user are
+confident in doing.  Indeed the package managers solves this kind of problem,
+the software is compiled once by expert on the software itself and is
+distributed along with a script that install it in the most appropriate
+location in the system and with a series of dependencies. This is a major shift
+in the interface since now the user simply install a package without caring of
+all its dependencies or without even needing a compiler. It is the package
+manager that will eventually install run time dependencies, direct or indirect.
+
+The distribution of packages poses already a challenge, given enough request to
+those packages it would be necessary to load balance the request between
+several mirrors site, indeed this is what happens in big linux distribution
+that serves a lot of users. The package manager itself is mirrored to different
+data center each one serving a part of the traffic.
+
+\section{Local cluster}
+
+As long as the installation of software is manual and done is relatively small
+cluster package managers are suitable for hosting all the software and
+provision the servers.
+
+When the cluster start to grow manual installation is not a solution anymore,
+indeed specialized tools are available to manage the state of a fleet of
+machines.
+
+\textit{Ansible} \cite{ansible}, \cite{provisioning} is a tool that helps in
+managing the installation of software in a fleet of machine. It is based on two
+simple concepts, the \textit{inventory} and the \textit{playbook}. The
+inventory associate each machine that is managed to a set of tags. The playbook
+is a set of statuses each associated with a tag. When provisioning a fleet of
+machines, Ansible tries to adapt the status of each server in a way that it
+respect the status declared in the playbook. As an example in the playbook we
+may declare that the servers tagged as \texttt{web-server} need to have the
+\texttt{apache} service on, while the servers tagged as \texttt{build-node}
+needs to have the \texttt{gcc} package installed. In the first case Ansible
+will try to start the \texttt{apache} service while in the second case it will
+try to install the \texttt{gcc} package.
+
+A possible issue with Ansible is about the use of those servers, users may
+login into the server, change their configuration to fix an urgent problem and
+then don't updates the Ansible playbooks. In the long term this causes a drift
+on configuration and settings that makes quite difficult to manage the fleet of
+services.
+
+A solution to the drift in configuration is the use of a different tool,
+\textit{Puppet} \cite{puppet}, \cite{provisioning} which works on a similar
+principle of Ansible but it constantly monitor the status of each machine
+reverting any changes.
+
+If different users need to access a shared pool of computing resource other
+solution consist in the use of \textit{virtual machines}. Each physical machine
+get partitioned into a set of different, isolated virtual machines where each
+users can install and configure its software. Moreover the image of the virtual
+machine itself may comes with software already installed and configured.
+
+Providing software already installed in a machine is a major conceptual shift
+where we move from the user having the responsibility to install all the needed
+software to a model where the software was already in the system itself.
+Virtual machines while providing the stronger level of isolation possible in a
+shared environment are slow to set up and also slower than native performance.
+
+An evolution of virtual machines are the containers, containers provides a
+smaller level of isolation than virtual machine but are much quicker to set up
+and have close to native performance. Moreover containers are simple to build
+and their popularity is raising between developer as well. Indeed it is
+possible to set up a containers that encapsulate all the status necessary to
+run a specific computation, this allow to move the container from a machine to
+the other without worry anymore of run-time dependencies.
+
+All these solutions works well in local cluster, however all of them requires
+to move all the necessary software on a local machine, also components that are
+not needed. Starting a fleet wide installation using tools like
+\textit{Ansible} or \textit{Puppet} means that the package managers needs to
+serve at roughly the same time all the packages necessary by all the machines,
+which can quickly sum up to a lot of bandwidth. The use of virtual machines of
+containers is not better in this cases since it still requires to move a lot of
+content. In big cluster is common to provide local package managers and local
+container registries.
+
+Providing the content to several different machines is a problem that can be
+solved by careful use of cache and optimization. Diving deeper into the
+containers worlds the OCI standard defines that each layer is identified by a
+single unique digest. This helps since it provides an unique identifier to
+cache and, more importantly, by bundling together a lot of different files in a
+single tar files it sidestep the need of managing metadata for all the files in
+a container. Still this comes at the cost of needing to download a big file
+even if its content is not all necessary. Similar consideration can be done for
+the provisioning of Virtual Machines.
+
+\section{WLCG environment} 
+
+With the respect of provisioning the WLCG and its modus operandi is an harsh
+environment. It operates in a batch computation mode, where jobs are scheduled
+and they start all together in a wide fleets of machines, possibly in
+geographical different data centers. Indeed several solution have been
+proposed.
+
+The \textit{Andrew File System} \cite{andrew} (AFS) is distributes read-write
+file system optimized for home directories on globally distributed
+workstations. AFS provides a global name space (/afs) partitioned into
+\textit{cell} and \textit{volumes}. Physic collaborations can host the
+authoritative copies of their experiment software on public volumens (cell
+/afs/cern.ch). Using AFS software need to be installed only once in order to be
+used by several clients.  Since AFS need to keep the connection state for all
+its clients it has a low client/server ration with is limited to about 200:1.
+
+Another proposed mechanism to manage installation on the WLCG are the
+\textit{grid installation jobs}. Jobs that pre-install software releases on
+worker node. In order to avoid to install the software on every single node
+WLCG Tiers provides a \textit{share software areas}, a NFS volume mounted to
+every worker node that can be used to provide the software itself. While the
+\textit{share software areas} are a necessity the also introduce a single point
+of failure and high chance to overload the NFS with meta-data operations.
+
+An evolution of the \textit{grid installation jobs} is the \textit{ALICE
+Software Installation System}. The software releases are still distributed as
+packages but those packages are physically distributed to the worker nodes
+using the BitTorrent protocol. This improves the installation times using all
+the bandwidth not only from the package manager through the worker nodes but
+also between the worker node themselves. Unfortunately this architecture
+required to still transfer all the packages to all the nodes which is a waste
+of bandwidth, introduce sources of errors and it is time consuming.
+
+Another evolution of the \textit{grid installation jobs} is \textit{GROW-FS}
+\cite{grow-fs} which pioneered the idea of meta-data handling on the worker
+nodes and not in a central node. \textit{GROW-FS} provides as well a shared
+areas for installation using a simple web server. \textit{GROW-FS} uses a
+single catalog for the entire directory tree and changes to the file system
+structure requires to completely reconstruct the catalog as well as re-mounting
+the file system on the worker nodes.
+
+\section{Managing run time dependencies on the WLCG}
+
 Other than the distribution of content, CERN faced the problem of managing
 run-time dependencies. A possible solution to this problem would be to
 statically link all the dependencies, but this would generate extremely big
@@ -42,7 +194,7 @@ Registry but also of the other nodes in the cluster, while decreasing the
 downloading time FID still require to download all the image before to run the
 computation. Another work by Anwar et all. \cite{210500} characterize the
 workload of large-scale registries in order to derive design implication for
-more optimize registries, still they are working to optmize the time necessary
+more optimize registries, still they are working to optimize the time necessary
 to serve and download the whole image from the registry.
 
 While the aim of this work is still to decrease the start up time of uncached
@@ -50,6 +202,13 @@ containers we took a different road. While the previous works focus on optimize
 the delivering time of the whole content image we decide to focus on minimize
 the amount of content that the client needs to download which of course lead to
 shorter start up time for the containers and also on saving bandwidth.
+
+\section{Working lazily}
+
+The experience with the several installation mechanism tested at CERN suggest
+that is necessary to work lazily in order to provide software and content to a
+wide fleet of machines and this is exactly what CVMFS does for us. However we
+need another step in order to solve also the problem of run time dependencies.
 
 Few other system have been proposed to address the problem using a similar
 architecture. The \textit{cvmfs/graphdriver} \cite{graphdriver-plugin} allows
@@ -67,56 +226,19 @@ implementation of the NFS they use that relies on network disks. We lack the
 details about the NFS used by Slacker (Tintri 620) but we believe that their
 performance may be strongly influenced by the size of the cluster.
 
+Similarly to Slacker in another work Nicolae et al. \cite{back-forth} propose
+another lazy structure this time to run Virtual Machines. They trap the IO to
+the Virtual Machine image using FUSE and redirect those call into a shared
+read-write file system backed by local disk on each machine.  Similarly to
+Slacker we believe that this approach works well on a small set of machines but
+it won't scale well on a big cluster. As mentioned above for the \textit{grid
+installation jobs} the use of NFS brings the risk of overloading the NFS itself
+with metadata operations.
+
 In this work we aim to finally bridge the two world of containers and
-distributed read-only file system like CVMFS.
-
-%************************************************
-\chapter{State of the Art }\label{ch:SoA}
-%************************************************
-
-\todo{This shorter version I believe link better, I already discussed the problem of run-time dependencies...}
-
-As we discussed on the Problem Definition on Section \ref{sec:problem} we
-trying to efficientely deliver the content of containers to a huge number of
-computing nodes.
-
-Several system have been propose to decrease the downloading time of containers
-images, all of them work \textit{ahead of runtime} trying to optimize
-for how fast the overall system is capable of delivering the whole image into
-the host. FID (Faster Image Distribution) \cite{FID} is a P2P Docker images
-distribution system that is able to accelerate the speed of distributing Docker
-images by taking full advantage of the bandwidth of not only the Docker
-Registry but also of the other nodes in the cluster, while decreasing the
-downloading time FID still require to download all the image before to run the
-computation. Another work by Anwar et all. \cite{210500} characterize the
-workload of large-scale registries in order to derive design implication for
-more optimize registries, still they are working to optmize the time necessary
-to serve and download the whole image from the registry.
-
-While the aim of this work is still to decrease the start up time of uncached
-containers we took a different road. While the previous works focus on optimize
-the delivering time of the whole content image we decide to focus on minimize
-the amount of content that the client needs to download which of course lead to
-shorter start up time for the containers and also on saving bandwidth.
-
-Few other system have been proposed to address the problem using a similar
-architecture. 
-
-The \textit{cvmfs/graphdriver} \cite{graphdriver-plugin} allows us to run
-Docker images starting from a \textit{recipe} file that list the layers to
-mount and their location in the file system. Unfortunately a way to provide the
-\textit{thin images} was not provided, moreover it wasn't provide a way to
-structure the file system itself. 
-
-Slacker \cite{slacker} tackle the same problem but it use a very different
-implementation. Their work is based on NFS and flatten layers. All the layer of
-an image get flatten into a single layer, and such layer stored as a single
-file into a NFS shared between the Docker Registries and the Docker Client.
-While \textit{cvmfs/graphdriver} share a set of layers as Docker images,
-Slacker share a simple reference to the file stored in the NFS. Slacker is able
-to reach very interesting performance thank to the implementation of the NFS
-they use that relies on network disks. We lack the details about the NFS used
-by Slacker (Tintri 620) but we believe that their performance may be strongly
-influenced by the size of the cluster.
-
+distributed read-only file system like CVMFS. Instead of working with blocks
+like Slacker and Nicolae et al. our primitives will be files. Similarly we are
+not going to provide a read-write interface to the worker node since this
+will definitely impact the scalability of the solution given the necessities to
+implements locks. The client will only be able to read the files.
 
