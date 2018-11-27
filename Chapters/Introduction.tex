@@ -116,7 +116,7 @@ managers themselves under too much load. Several solution have been proposed
 and used in the past, eventually it settled for the use of CernVM-FileSystem
 (CVMFS) \cite{cvmfs}.
 
-\section{CVMFS}
+\section{CVMFS} \label{sec:cvmfs}
 
 This section will explore CernVM-FileSystem, we will start with an high level
 overview of CVMFS, then we will explore what happens when a file is requested.
@@ -343,25 +343,27 @@ CVMFS.
 
 \section{Problem Definition}\label{sec:problem}
 
-We have introduce how CERN has overcome the challenges of software distribution
+We have introduced how CERN has overcome the challenges of software distribution
 using CVMFS. Unfortunately this is not enough since run-time dependencies
-between software components can break application that instead are running
+between software components can break applications that instead are running
 perfectly fine in a different environment.
 
 Since containers pack up all their runtime dependencies in a standard
-environment they are a suitable solution for this problem. However containers
-are distributed as big tar files which is against the design and working
-principle of CVMFS.
+environment they are a suitable solution for this problem. However, containers
+are distributed as big tar files which is against the design, working
+principles and performance characteristics of CVMFS.
 
-Both CVMFS and containers aims to solve the similar problem of server
+Both CVMFS and containers aim to solve the same challenge of server
 provisioning, however they made different trade-offs. CVMFS opted for an
-efficient distribution of the content, however this makes difficult and
+efficient distribution of the content, making difficult and
 inconvenient to pack all the runtime dependencies of a particular application.
-Containers opted to make each application self-contained so that the
-application can run reliably also on different computer environment, however
-they loose efficiency in the distribution of their content.
+Containers, instead, opted to make each application self-contained so that the
+application can run reliably on different computer environments, however
+losing efficiency in the distribution of the content.
 
-Efficient content distribution and application containerization are not
-contrasting goals, and, as such in this thesis we will tackle the problem of
-how to efficiently distribute the content of containers.
+Efficient content distribution and efficient dependency management should not
+be contrasting goals. For this reason, in this thesis work we will tackle the
+problem of how to efficiently distribute software in HPC clusters while
+efficiently preserving all its runtime dependencies.
+
 

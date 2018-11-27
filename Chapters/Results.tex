@@ -2,38 +2,89 @@
 \chapter{Results}\label{ch:Results}
 %************************************************
 
-In this section we explore the result of this works.
+In this section we will explore the result of this works, we mentioned 4
+metrics that we were considering for this work, first we focus on the start up
+times of containers, then we analyze the amount of space required in the CVMFS
+repository and we will compare it with the sum of the size of the containers in
+the system. We will then analyze the files in each CVMFS catalog and finally we
+will analyze the complexity of managing the file system itself.
 
-We mentioned 4 metrics that we were considering for this work:
-
-\begin{itemize}
-\item Minimize the amount of space required
-\item Minimize the start up time of containers
-\item Limit the number of files in each CVMFS catalogs
-\item Minimize the complexity of managing the filesystem itself
-\end{itemize}
-
-All the measurement are going to be done against a CVMFS repository containing
+All the measurement were done against a CVMFS repository containing
 images necessary for standard HEP work.
 
-In order to quantify the amount of space required we are simply going to
-measure the amount of space that the repository uses, we will compare this
-figure with the amount of data that the repository provides and with a simple
-summation over the size of the layers stored in the repository.
+The measurement of a container start up time is greatly influenced by the
+caches layers in all cases, either if we serve the content with CVMFS - which
+use an internal cache - or if we run standard containers where the content may
+already be cached in the standard file system. Hence we will measure the start
+up time with and without caches with the content served using both CVMFS and
+the standard content distribution mechanism of both Singularity and Docker. In
+each setting we will start the containers 100 times. All the measurement are
+made inside the CERN data center where we assume a stable and reliable
+connection.
 
-The startup time of a container is greatly influenced by the cache layer in all
-cases, either if we serve the content with CVMFS or if the content is already
-cached in the hosting machine.
-
-We will measure the startup time of all kind of technologies with and without
-cache a significant number of times, the measurement are made inside the CERN
-data center where we assume a stable and reliable internet connection.
+To quantify the amount of space required we measured the amount of space that
+the repository uses, comparing this figure with the amount of data that the
+repository provides. Moreover we will report the total size of all the images
+store in the repository itself.
 
 The amount of files in each CVMFS catalog is a simple measurement, since the
-amount of catalogs is rather big we will synthetize this measurement.
+amount of catalogs is rather big we will synthesize this measurement.
 
-To measure the complexity of managing the filesystem we are going to measure
-the cyclomatic complexity of the software that we use to manage it.
+Finally to measure the complexity of managing the file system, we measured the
+cyclomatic complexity of the software that we use to manage it.
+
+\section{Container Startup Time}
+
+This Section explores the startup time of the containers hosted in the CVMFS
+file-system.
+
+We will show the average time to start a container, start the python shell
+inside the container and execute the \textit{quit()} command inside the shell.
+We decide for this simulation because it requires to have access to  the python
+interpreter in the container, which is a executable of not negligible size,
+3.4M. Moreover we choose the python images because is a widely know image with
+a good balance between developing work and production work. The size of the
+whole image is of roughly ~923M.
+
+We propose 8 scenarios that we synthesize in the Table \ref{tab:benchmark} and
+on the graph of Figure \ref{fig:startup-time}. The \textit{Thin-Image on CVMFS}
+columns represent the startup time of containers which content is hosted in the
+CVMFS architecture discussed. The \textit{Naive} columns represent the start up
+time of containers using the default distribution system based on Docker
+Registries.
+
+\begin{table}[]
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+\multicolumn{2}{|l|}{\multirow{2}{*}{}}            & \multicolumn{2}{l|}{Cache} & \multicolumn{2}{l|}{No Cache} \\ \cline{3-6} 
+\multicolumn{2}{|l|}{}                             & Avg          & STD         & Avg            & STD          \\ \hline \hline
+\multirow{2}{*}{Thin-Image on CVMFS} & Singularity & 10.31        & 4.38        & 29.13          & 4.02         \\ \cline{2-6} 
+                                     & Docker      & 96.74        & 5.40        & 180.02         & 35.13        \\ \hline \hline
+\multirow{2}{*}{Naive}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
+                                     & Docker      & 95.26        & 5.29        & 1279.21        & 168.99       \\ \hline
+\end{tabular}
+\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of seconds. $n = 100$}
+\label{tab:benchmark}
+\end{table}
+
+\begin{figure}[]{}
+    \includegraphics[width=\textwidth]{gfx/plot-startup-time}
+        \caption{Startup times of the containers served using the proposed architecture and served using the standard Docker Registries.}
+        \label{fig:startup-time}
+\end{figure}
+
+
+We ran the benchmark 100 times, and we collect the startup time with the unix
+utility \texttt{time}. The code that we used to obtain the number is available
+on the listing on Section \ref{sec:benchmark-code}
+
+We can see that the use of CVMFS is a huge help when the cache is not
+available, moreover its overhead is almost negligible when the cache is
+present. Is interesting to know that the containers hosted in CVMFS without
+cache starts in an amount of time whose order of magnitude is comparable to the
+containers hosted naively but using cache (4 times slower in the case of
+Singularity and 2 times slower in the case of Docker.)
+
 
 \section{Space Requirement}
 
@@ -71,53 +122,13 @@ reducing the amount of space required to host the repository by half, which
 make sense since the \textit{.layers} and the \textit{.flat} contains the exact
 same files.
 
-\section{Container Startup Time}
-
-This Section explores the startup time of the containers host in the CVMFS
-file-system.
-
-We will show the average time of starting a container, start the python shell
-inside the container and executing the exit command inside the shell.
-
-We decide for this simulation because it requires to have access to  the python
-interpreter in the container, which is a executable of not negligible size.
-
-We propose 8 scenarios that we synthesize in the Table \ref{tab:benchmark}
-below.
-
-
-% Please add the following required packages to your document preamble:
-% \usepackage{multirow}
-\begin{table}[]
-\begin{tabular}{|l|l|l|l|l|l|}
-\hline
-\multicolumn{2}{|l|}{\multirow{2}{*}{}}            & \multicolumn{2}{l|}{Cache} & \multicolumn{2}{l|}{No Cache} \\ \cline{3-6} 
-\multicolumn{2}{|l|}{}                             & Avg          & STD         & Avg            & STD          \\ \hline \hline
-\multirow{2}{*}{Thin-Image on CVMFS} & Singularity & 10.31        & 4.38        & 29.13          & 4.02         \\ \cline{2-6} 
-                                     & Docker      & 96.74        & 5.40        & 180.02         & 35.13        \\ \hline \hline
-\multirow{2}{*}{Naive}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
-                                     & Docker      & 95.26        & 5.29        & 1279.21        & 168.99       \\ \hline
-\end{tabular}
-\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of seconds. $n = 100$}
-\label{tab:benchmark}
-\end{table}
-
-We ran the benchmark 100 times, and we collect the startup time with the unix
-utility \texttt{time}. The code that we used to obtain the number is available
-on the listing on Section \ref{sec:benchmark-code}
-
-We can see that the use of CVMFS is a huge help when the cache is not
-available, moreover its overhead is almost negligiable when the cache is
-present. Is interesting to know that the containers hosted in CVMFS without
-cache starts in an amount of time comparable to the containers hosted naively
-but using cache (4 times slower in the case of Singularity and 2 times slower
-in the case of Docker.)
-
 \section{File in the sub-catalogs}
 
 CVMFS provides a rule of thumb about the number of files that should be hosted
 in each catalog to avoid stressing the sub-catalog too much. It suggest to
-limit the amount of file to less than 200000.
+limit the amount of file to less than 200000. Each request to the mounted
+repository needs to lookup values in at least one catalog, hence having small
+catalogs allow to keep each lookup fast enough.
 
 Using again the CVMFS command `cvmfs\_server list-catalogs` we obtain the
 number of files in each catalog.
@@ -126,77 +137,62 @@ We show the result in the graphs \ref{fig:layercatalog}, \ref{fig:flatcatalog},
 \ref{fig:loglayercatalog} and \ref{fig:logflatcatalog}.
 
 We can see how all the catalogs have less than 200000 entries respecting the
-suggestion of CVMFS.
+suggestion of CVMFS. Moreover we can see that the number of entries in each
+catalog is not linearly distributed, few catalogs amount to a lot of entries
+while the majority of them have relatively few entries each.
 
-Moreover, we can notice how the amount of file in a Docker image follows a
-power distribution.
-
-\begin{figure}[]{}
-    \includegraphics[]{gfx/catalogs-layer}
-        \caption{Number of files inside the catalogs in the \textit{.layer} directory.}
-        \label{fig:layercatalog}
+\begin{figure}[tb]
+\centering
+\subfloat[][Number of files inside the catalogs in the \textit{.layer} directory.]{\includegraphics[width=0.4\textwidth]{gfx/catalogs-layer}}
+\subfloat[][Number of files inside the catalogs in the \textit{.flat} directory.]{\includegraphics[width=0.4\textwidth]{gfx/catalogs-flat}}
 \end{figure}
 
+
 \begin{figure}[]{}
-    \includegraphics[]{gfx/catalogs-flat}
+    \includegraphics[width=\linewidth]{gfx/catalogs-layer}
+        \caption{Number of files inside the catalogs in the \textit{.layer} directory.}
+        \label{fig:layercatalog}
+    
+    \includegraphics[width=\textwidth]{gfx/catalogs-flat}
         \caption{Number of files inside the catalogs in the \textit{.flat} directory.}
         \label{fig:flatcatalog}
 \end{figure}
 
-\begin{figure}[]{}
-    \includegraphics[]{gfx/catalogs-layer-log}
-        \caption{Logarithm of the number of files inside the catalogs in the \textit{.layer} directory.}
-        \label{fig:loglayercatalog}
-\end{figure}
-
-\begin{figure}[]{}
-    \includegraphics[]{gfx/catalogs-flat-log}
-        \caption{Logarithm of the number of files inside the catalogs in the \textit{.flat} directory.}
-        \label{fig:logflatcatalog}
-\end{figure}
 
 \section{Complexity}
 
 In order to estimate the complexity of managing the file-system we decide to
-use the cyclomatic complexity of he tool that create and manage the file-system
-itself that we discuss on Chapter \ref{ch:implementation}. We used
-\textit{gocylo} \cite{gocylo} a command line tool that calculate the cyclomatic
-complexity of functions written in the Go(lang) languange.
+use the cyclomatic complexity of the tool that create and manage the
+file-system itself that we discuss on Chapter \ref{ch:Implementation}. We used
+\textit{gocylo} \cite{gocyclo} a command line tool that calculate the
+cyclomatic complexity of functions written in the Go(lang) language. We show
+the result of the cyclomatic analysis on Table \ref{tbl:cyclomatic}.
 
-\begin{lstlisting}[language=bash,
-    caption={Result of the cyclomatic complexity analysis, only function with complexity greater or equal to 3 are shown},label={lst:cyclomatic}]
->> gocyclo main.go cmd/ lib/ docker-api/
-37 lib ConvertWish lib/conversion.go:33:1
-15 lib ParseImage lib/parse.go:9:1
-14 lib AddManifestToRemoveScheduler lib/cvmfs.go:299:1
-12 lib GarbageCollectSingleLayer lib/garbage_collection.go:62:1
-12 lib (Image).GetChanges lib/image.go:145:1
-12 lib (Image).downloadLayer lib/image.go:436:1
-11 lib SaveLayersBacklink lib/cvmfs.go:219:1
-11 lib IngestIntoCVMFS lib/cvmfs.go:23:1
-9 lib requestAuthToken lib/image.go:519:1
-9 lib CreateSymlinkIntoCVMFS lib/cvmfs.go:99:1
-9 lib RemoveDirectory lib/cvmfs.go:426:1
-8 lib (Image).GetLayers lib/image.go:375:1
-7 lib FindImageToGarbageCollect lib/garbage_collection.go:15:1
-7 lib (Image).GetReference lib/image.go:70:1
-6 lib AlreadyConverted lib/conversion.go:317:1
-6 lib getBacklinkFromLayer lib/cvmfs.go:176:1
-6 lib (*execCmd).Start lib/exec_commands.go:35:1
-5 lib getManifestWithUsernameAndPassword lib/image.go:303:1
-5 lib (Image).GetManifest lib/image.go:125:1
-5 lib ParseYamlRecipeV1 lib/recipe.go:23:1
-5 lib firstRequestForAuth lib/image.go:337:1
-4 lib (Singularity).IngestIntoCVMFS lib/image.go:262:1
-4 lib parseBearerToken lib/image.go:499:1
-4 lib (Image).PrintImage lib/image.go:93:1
-4 lib (Image).DownloadSingularityDirectory lib/image.go:238:1
-3 dockerutil MakeThinImage docker-api/util.go:47:1
-3 lib (Image).GetSimpleReference lib/image.go:83:1
-3 lib (Image).WholeName lib/image.go:49:1
-3 lib CreateWish lib/wish.go:26:1
-3 lib ExecCommand lib/exec_commands.go:18:1
-\end{lstlisting}
+\begin{table}[]
+\begin{tabular}{|l|l|}
+\hline
+\multicolumn{1}{|r|}{Cyclomatic Complexity} & \multicolumn{1}{r|}{Function} \\ \hline
+37 & ConvertWish \\ \hline
+15 & ParseImage \\ \hline
+14 & AddManifestToRemoveScheduler \\ \hline
+12 & GarbageCollectSingleLayer \\ \hline
+12 & (Image).GetChanges \\ \hline
+12 & (Image).downloadLayer \\ \hline
+11 & SaveLayersBacklink \\ \hline
+11 & IngestIntoCVMFS \\ \hline
+9 & requestAuthToken \\ \hline
+9 & CreateSymlinkIntoCVMFS \\ \hline
+9 & RemoveDirectory \\ \hline
+8 & (Image).GetLayers \\ \hline
+7 & FindImageToGarbageCollect \\ \hline
+7 & (Image).GetReference \\ \hline
+6 & AlreadyConverted \\ \hline
+6 & getBacklinkFromLayer \\ \hline
+6 & (*execCmd).Start \\ \hline
+\end{tabular}
+\caption{Result of the cyclomatic complexity analysis, only function with complexity greater or equal to 3 are shown}
+\label{tbl:cyclomatic}
+\end{table}
 
 While the cyclomatic complexity is very high is important to note that
 idiomatic golang codes requires to manually check every possible error returned
@@ -205,142 +201,3 @@ complexity of the code. Indeed there are 19 error check without any logic in
 the code but simply returning early in the ConvertWish function.
 
 
-\section{Code to get the numbers}\label{sec:benchmark-code}
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of singularity with image hostes in CVMFS using CVMFS cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do 
-    /usr/bin/time -f "%U,%S,%E" \
-        singularity exec \
-            /cvmfs/thin.osg.cern.ch/library/python:latest \
-            python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of singularity with image hostes in CVMFS without cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do 
-    #cleanup the cvmfs cache
-    cvmfs_config wipecache >> /dev/null; 
-    
-    /usr/bin/time -f "%U,%S,%E" \
-        singularity exec \
-            /cvmfs/thin.osg.cern.ch/library/python:latest \
-            python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of docker thin-images using both CVMFS and Docker cache}]
-#!/bin/bash
-
-docker pull thin-python:latest
-
-for i in {1..101}; 
-do 
-    /usr/bin/time -f "%U,%S,%E" \
-        docker run thin-python:latest python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of docker thin-images without Docker nor CVMFS cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do 
-    #cleanup the cvmfs cache
-    cvmfs_config wipecache >> /dev/null; 
-    
-    # remove the layers from the docker cache
-    docker rmi thin-python:latest -f >> /dev/null; 
-    
-    # cleanup any remaining data from the system
-    docker system prune -a -f; 
-
-    /usr/bin/time -f "%U,%S,%E" \
-        docker run thin-python:latest python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-
-
-\begin{lstlisting}[language=bash,
-caption={Script used to capture the startup time of Docker standard images without Docker cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do 
-    # remove the local image of python
-    docker rmi -f python:latest; 
-
-    # cleanup any remaining data from the system
-    docker system prune -a -f; 
-    
-    /usr/bin/time -f "%S,%U,%E" \
-        -o ~/start-time-docker-standard-no-cache.csv -a \
-        docker run python:latest python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of Singularity running Docker standard images without Singularity cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do
-    # cleanup the singularity cache directory
-    rm -rf /root/.singularity/docker; 
-    
-    /usr/bin/time -f "%S,%U,%E" \
-        -o ~/start-time-singularity-standard-no-cache.csv -a \
-        singularity exec docker://python:latest \
-            python -c "quit()"; 
-done
-\end{lstlisting}
-
-
-
-\begin{lstlisting}[language=bash,
-    caption={Script used to capture the startup time of Singularity running images unpacked on the local file-system, hence with cache}]
-#!/bin/bash
-
-for i in {1..101}; 
-do 
-    /usr/bin/time -f "%S,%U,%E" \
-        -o ~/start-time-singularity-standard.csv -a \
-        singularity exec python_latest/ python -c "quit()"; 
-done
-
-\end{lstlisting}
-
-\begin{lstlisting}[language=bash,caption={Script used to capture the startup time of docker thin-images without cache}]
-#!/bin/bash
-for i in {1..101}; 
-do 
-    # clean the CVMFS cache
-    cvmfs_config wipecache >> /dev/null; 
-        
-    # clean the docker cache
-    docker rmi thin-osg/library/python:latest -f >> /dev/null; 
-        
-    # run and measure the start up time
-    /usr/bin/time -f "%S,%U,%E" \
-        -o ~/start-time-docker-no-cache.csv -a \ 
-        docker run thin-osg/library/python:latest \
-            python -c "quit()"; 
-done
-\end{lstlisting}

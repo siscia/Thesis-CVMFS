@@ -9,7 +9,7 @@ Docker thin-images because it allows the user to leverage the Docker infrastruct
 to run images whose content is distributed with a read only file-system.
 
 Section \ref{sec:methodology-high-level} will provide a high level overview of
-the proposed methodology explaining why we decide to focus our design on CVMFS,
+the proposed methodology explaining why we decided to focus our design on CVMFS,
 Singularity and Docker with the \textit{cvmfs/graphdriver} plugin.
 
 Section \ref{sec:methodology-singularity} will analyze the file-system
@@ -33,42 +33,46 @@ track of the images already present in the file-system.
 \label{sec:methodology-high-level}
 
 As mention the aim of this work is to provide an efficient content distribution
-system to run containerized application on big distributed cluster.  The
-content distribution part will be managed by CVMFS which provides us with the
-primitives necessary to efficiently distribute the content, moreover, up to our
-knowledge, CVMFS is the only stable and tested system used that allows to
-distribute lazily and efficient Terabytes of data.  Then, there are two
-container run-times that we can use to actually run the containers.
-Singularity, introduced in Section \ref{subsec:singularity} that allow to run
-containers whose content is already unpacked in a simpler folder. Docker with
-the \textit{cvmfs/graphdriver} plugin which allows Docker to run \textit{thin
-images} made of a simple \textit{recipe} \texttt{json} file with describe where
-in the file system find the necessary layers that are needed to be mounted
-before to start the container itself.
+system to run containerized application on big distributed cluster.  
 
-We will provide a structure for a read-only file system that allow to execute
-containers using both the container run-times mentioned above. The proposed
-structure is absolutely generic and even if not implemented with CVMFS it would
-allow to the above container run-times to work with minimal modifications
-\footnote{The implementation of \textit{cvmfs/graphdriver} relies on a specific
-\textit{cvmfs} url in the \textit{recipe} format which is a simple
-implementation details that can be easily generalized.}, however some choice of
-the directory structures have been taken given the design of CVMFS and may not
-be necessary on a generic read-only file system.
+The aim of this work is how to efficiently distribute software in HPC clusters
+while efficiently preserving its runtime dependencies. To tackle this problem
+we will resort on CVMFS to efficiently distribute the content of the containers
+together with containers technologies to preserving the runtime dependencies in
+such a way that only the strictly necessary files will be downloaded into the
+worker nodes of the clusters.
 
-Moreover, in Chapter \ref{ch:Implementation} we will close the last gap in the
-\textit{cvmfs/graphdriver} plugins providing a way to generate \textit{thin
-images} starting from standard Docker \textit{fat images} and expose them in
-the presented file system.
+
+The content distribution part will be managed by CVMFS which provides us with
+the primitives necessary to efficiently distribute the content. Moreover, to
+the least of our knowledge, CVMFS is the only stable and tested system that
+allows to distribute lazily and efficiently Terabytes of data in a distributed
+data center like the WLCG.  Starting from the data distributed by CVMFS, there
+are two container run-times that we can use to actually run the containers.
+The first one is Singularity, introduced in Section \ref{subsec:singularity}
+that allows to run containers whose content is already unpacked in a simpler
+folder. The second one is Docker with the \textit{cvmfs/graphdriver} plugin,
+which allows Docker to run \textit{thin images} made of a simple
+\textit{recipe} \texttt{json} file which describes where are in the file system
+the necessary layers that are needed to be mounted before to start the
+container itself.
+
+The proposed structure is absolutely generic and even if not implemented with
+CVMFS it would allow the above container run-times to work with minimal
+modifications \footnote{The implementation of \textit{cvmfs/graphdriver} relies
+on a specific \textit{cvmfs} url in the \textit{recipe} format which is a
+simple implementation details that can be easily generalized.}. However some
+choices of the directory structures have been taken starting from the design of
+CVMFS and may not be necessary on a generic read-only file system.
 
 The proposed file-system provides two main structure. A non-hidden set of
 directories that host the unpacked images to run with Singularity and a hidden
 folder to host the layers used by the \texttt{cvmfs/graphdriver} Docker plugin.
-Along with these structure another hidden directory will contains metadata
+Along with these structures another hidden directory will contains metadata
 information about the Docker images already in the repository.
 
 The directories that host the unpacked Docker images have the same hierarchical
-structure of the Docker structure as mentioned in \ref{sec:containers}, hence
+structure of the Docker structure mentioned in \ref{sec:containers}, hence
 the first directory is the name of the registry that host the image, it follow
 the namespace which refers to the user of the organization responsible for the
 image and the last level is the image name along with the tag.
@@ -76,11 +80,11 @@ image and the last level is the image name along with the tag.
 The directory that host the layers of the Docker images can conceptually be a
 flat structure simply containing the layers each identified by its digest.
 However a simple flat structure will put too much pressure in the catalog
-system so we will aggregate layers that share the same digest prefix and create
+system so we aggregated layers that share the same digest prefix and create
 a sub-catalog for each aggregation.
 
 The hidden metadata folder will follow the same hierarchical structure of
-Docker images that allow to quickly locate the metadata information of an image
+Docker images, allowing to quickly locate the metadata information of an image
 given just the name of the image itself.
 
 \begin{figure}
@@ -254,8 +258,6 @@ shared between images.
 Removing layers has the important implication that once the layer is removed
 every thin image that relies on it won’t work anymore.  However those
 thin-images could be stored on the client side where we don’t have any access.
-Please refer to the figure \ref{fig:thin-image-lifecycle} on page
-\pageref{fig:thin-image-lifecycle}
 
 To do not disrupt the user workflow while keeping the repository to a manageable
 size we consider several option: 
@@ -389,7 +391,7 @@ Inside the \texttt{.metadata/} folder we have others directories, one for each
 hosted image.  Inside those directories there is a single file,
 \texttt{manifest.json} that store the manifest of the image itself.
 
-As already mentioned in \ref{subsec:singularity-docker-distribution} the
+As already mentioned in \ref{sec:containers} the
 manifest contains the digest of the image itself.  Comparing the manifest
 stored in the file-system with the manifest downloaded from the docker
 registries is possible to understand if the image should be updated or nor.
