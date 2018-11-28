@@ -32,10 +32,10 @@ track of the images already present in the file-system.
 \section{High Level overview of the proposed file system}
 \label{sec:methodology-high-level}
 
-As mention the aim of this work is to provide an efficient content distribution
-system to run containerized application on big distributed cluster.  
+The aim of this work is to provide an efficient content distribution
+system to run containerized application on big distributed clusters.  
 
-The aim of this work is how to efficiently distribute software in HPC clusters
+The aim of this work is to efficiently distribute software in HPC clusters
 while efficiently preserving its runtime dependencies. To tackle this problem
 we will resort on CVMFS to efficiently distribute the content of the containers
 together with containers technologies to preserving the runtime dependencies in
@@ -43,14 +43,14 @@ such a way that only the strictly necessary files will be downloaded into the
 worker nodes of the clusters.
 
 
-The content distribution part will be managed by CVMFS which provides us with
+The content distribution part will be managed by CVMFS which provides
 the primitives necessary to efficiently distribute the content. Moreover, to
-the least of our knowledge, CVMFS is the only stable and tested system that
+the best of our knowledge, CVMFS is the only stable and tested system that
 allows to distribute lazily and efficiently Terabytes of data in a distributed
 data center like the WLCG.  Starting from the data distributed by CVMFS, there
 are two container run-times that we can use to actually run the containers.
 The first one is Singularity, introduced in Section \ref{subsec:singularity}
-that allows to run containers whose content is already unpacked in a simpler
+that allows to run containers whose content is already unpacked in a simple
 folder. The second one is Docker with the \textit{cvmfs/graphdriver} plugin,
 which allows Docker to run \textit{thin images} made of a simple
 \textit{recipe} \texttt{json} file which describes where are in the file system
@@ -68,12 +68,12 @@ CVMFS and may not be necessary on a generic read-only file system.
 The proposed file-system provides two main structure. A non-hidden set of
 directories that host the unpacked images to run with Singularity and a hidden
 folder to host the layers used by the \texttt{cvmfs/graphdriver} Docker plugin.
-Along with these structures another hidden directory will contains metadata
+Along with these structures another hidden directory will contain metadata
 information about the Docker images already in the repository.
 
 The directories that host the unpacked Docker images have the same hierarchical
-structure of the Docker structure mentioned in \ref{sec:containers}, hence
-the first directory is the name of the registry that host the image, it follow
+structure of the Docker structure mentioned in Section \ref{sec:containers}, hence
+the first directory is the name of the registry that host the image, it follows
 the namespace which refers to the user of the organization responsible for the
 image and the last level is the image name along with the tag.
 
@@ -104,13 +104,13 @@ given just the name of the image itself.
 \section{Singularity Images}
 \label{sec:methodology-singularity}
 
-To run Docker images using Singularity is sufficient to start the singularity
+To run Docker images using Singularity it is sufficient to start the singularity
 executable providing as input the directory where the image is been unpacked.
 In this section we are going to show how we structure the file-system in a way
 that allow users to easily discover and run unpacked docker images using
 Singularity while keeping the file-system easy to maintain.
 
-As mentioned in \ref{sec:containers} docker images have
+As mentioned in Section \ref{sec:containers} Docker images have
 a hierarchical structure.  The first level of the hierarchy is the docker
 registry where the image is hosted.  The most common registries in our case are
 the official docker hub \footnote{\texttt{registry.hub.docker.com}} and the
@@ -128,7 +128,7 @@ level containing just the tags.  Indeed there are relatively few tags for each
 image and adding another level of indirection would have made it harder to
 explore the file-system.  Moreover, we decided to use the colon because it is
 the same character used in the docker registries between the images and the tag
-and it is immediately recognizable by users.
+and it is immediately recognizable by the users.
 
 \begin{figure}
 \dirtree{%
@@ -155,7 +155,7 @@ repository complex.
 The tags used in each image are not immutable, hence, without continuous
 maintenance, it may happen that the images stored inside the file-system are
 not up to date making difficult for the user to know what version of the
-software is being run.  However with the described structure, it would be
+software is being run.  Moreover with the described structure, it would be
 extremely complex to detect if an image is up to date or if it needs further
 updates.
 
@@ -164,10 +164,10 @@ identified by its digest.  Indeed we decided to store the real content of the
 images in an hidden folder that embed the digest itself while preserving the
 structure presented above using symbolic links.
 
-We show the directory structure of the file-system on figure
+We show the directory structure of the file-system on Figure
 \ref{fig:simple-fs}.
 
-The folder that contains the real content of a Singularity images are all below
+The folder that contains the real content of a Singularity image are all below
 the standard subdirectory \texttt{.flat/}.  The name \texttt{.flat/} was chosen
 to make it clear that only flatted file systems are stored in there.
 
@@ -214,7 +214,7 @@ file-systems of multiple images whose digest start with “ea”.
 However, to relieve pressure from the catalog system is not sufficient to
 simply aggregate the images into "super-directories", we also need to create a
 sub-catalog for each "super-directory." Moreover, since each image can contains
-itself a lot of files we decide to create a sub-catalog also for each unpacked
+itself a lot of files we decided to create a sub-catalog also for each unpacked
 image.
 
 Another positive side-effect of the use of symbolic links is that symbolic
@@ -227,8 +227,8 @@ CVMFS and they are not necessary on an abstract read-only file-system.
 \label{sec:methodology-docker}
 
 While for running docker images using Singularity it is sufficient to have the
-image unpacked in a simple directory running docker containers using the
-thin-images plugin requires a more complex set up.  As explained in
+image unpacked in a simple directory, running Docker containers using the
+thin-images plugin requires a more complex set up.  As explained in Section
 \ref{subsec:docker-thin-images} the recipe of the docker thin-image contains
 the path of the directories where each layer of the original docker image is
 hosted, those directories will be mounted by the docker plugin.
@@ -243,24 +243,24 @@ did for the Singularity sub-tree.
 Like docker images also the docker layers are identified by an unique digest,
 and similarly to the docker images, store all of them in a single directory
 will put too much pressure in the CVMFS sub-catalog system, hence we follow the
-exact same model used for storing the unpacked images also for the layers
+exact same model used for storing the unpacked images also for the layers,
 creating 216 super-directories.
 
-A big advantage of the use of layers over flat images, is that layers can be
+A big advantage of the use of layers over flat images is that layers can be
 shared by multiple images.
 
 The sharing of layers allow us to avoid re-doing work that is already been
-done, in particular if a later is already in the file-system it will not be
+done, in particular if a layer is already in the file-system it will not be
 added again. On the other hand it makes more complex removing an image since it
-is necessary to remove each layer that compose the image, but some layer may be
+is necessary to remove each layer that compose the image, but some layers may be
 shared between images.
 
 Removing layers has the important implication that once the layer is removed
-every thin image that relies on it won’t work anymore.  However those
+every thin image that relies on it would not work anymore.  However those
 thin-images could be stored on the client side where we don’t have any access.
 
-To do not disrupt the user workflow while keeping the repository to a manageable
-size we consider several option: 
+To not disrupt the user workflow while keeping the repository to a manageable
+size we considered several options: 
 \begin{enumerate}
 \item Never remove layers
 \item Remove layers as soon as possible
@@ -281,15 +281,15 @@ it is the one that we implement, this gave users the possibility to:
 \item Update the local images in order to always run stable containers
 \end{enumerate}
 
-In order to know which layer to delete from the file-system we store a reference
-that map each layer to the images that use the layer itself.
-
-These references are stored as metadata in a simple \texttt{.json} file.  We
-store one of these reference file for each layer in the file-system.
-
-Anytime a new image is added to the file-system we update the several
-references files, adding for each layer in the image, a reference to the image
-itself.
+In order to know which layer to delete from the file-system we store a
+reference that map each layer to the images that use the layer itself.These
+references are stored as metadata in a simple \texttt{.json} file.  We store
+one of these reference files for each layer in the file-system.  Anytime a new
+image is added to the file-system we update the several reference files,
+adding for each layer in the image, a reference to the image itself.  When we
+decide to remove an image, for any layer we check that it is used only by the
+image we want to remove, if this is the case, we remove the layer, if it is not
+the case we just remove the reference of the image.
 
 \begin{figure}
 \begin{lstlisting}[caption={Algorithm to add an image reference to the layer metadata}, label={lst:add-image-reference-to-layer}]
@@ -307,10 +307,6 @@ Function AddReferenceToImage
 EndFunction
 \end{lstlisting}
 \end{figure}
-
-When we decide to remove an image, for any layer we check that it is used only
-by the image we want to remove, if this is the case, we remove the layer, if it
-is not the case we just remove the reference of the image.
 
 \begin{figure}
 \begin{lstlisting}[caption={Algorithm to remove an image from the file-system}, label={lst:remove-layer}]
@@ -369,19 +365,19 @@ directly to the \texttt{layerfs/} directory.
 \label{fig:docker-layer-structure}
 \end{figure}
 
-The complete structure for storing docker images is the one showed in
+The complete structure for storing docker images is the one showed in Figure
 \ref{fig:docker-layer-structure}
 
 \section{Keeping track of the work already done}
 \label{sec:methodology-keep-track}
 
-To avoid to perform duplicated work is necessary to keep track of which image
+To avoid to perform duplicated work it is necessary to keep track of which image
 is already been added to the file-system. The same information may be used by
-the users to know exactly what images is hosted in the file-system.
+the users to know exactly what images are hosted in the file-system.
 
-In order to know which image is already been converted we need to uniquely
-identify each image, as already mention, using the combination of image name
-and tag is not enough, since the tag are mutable.  Hence we rely on the digest
+In order to know which image is already been added to the file system we need to uniquely
+identify each image. As already mentioned, using the combination of image name
+and tag is not enough, since the tag is mutable: hence we rely on the digest
 of the image.
 
 The information about each image is stored into another top-level hidden
@@ -391,12 +387,12 @@ Inside the \texttt{.metadata/} folder we have others directories, one for each
 hosted image.  Inside those directories there is a single file,
 \texttt{manifest.json} that store the manifest of the image itself.
 
-As already mentioned in \ref{sec:containers} the
+As already mentioned in Section \ref{sec:containers} the
 manifest contains the digest of the image itself.  Comparing the manifest
 stored in the file-system with the manifest downloaded from the docker
-registries is possible to understand if the image should be updated or nor.
+registries it is possible to understand if the image should be updated or not.
 
-The structure of the \texttt{.metadata/} folder is show in figure
+The structure of the \texttt{.metadata/} folder is shown in Figure
 \ref{fig:metadata-folder-structure}.
 
 \begin{figure}
@@ -426,21 +422,21 @@ plugin.
 
 We started by storing the unpacked images used by Singularity in a hierarchical
 structure that recall the one of the Docker registries to enhance the
-discoverability of the images itself. This approach however would have make
+discoverability of the images itself. This approach however would have made
 difficult to maintain the repository since we would not know the version of
 each image unpacked. We overcome this issue storing the real unpacked images in
 a hidden directory that embed the digest of the image itself and using symbolic
 links to preserve the hierarchical structure. Too many unpacked images stored
 under the same directories however would have put too much pressure on the
-catalog system of CVMFS, hence we adopted the use of super-directories.
+catalog system of CVMFS, hence we adopted the concept of super-directories.
 
 On the second part we analyzed how to store the layers used by the docker
-thin-image plugin. A single layer can be used by multiple images this allowed
-us to avoid repeating work but at the same time it makes more complex removing
+thin-image plugin. A single layer can be used by multiple images. This allowed
+us to avoid repeating work but at the same time it makes more complex to remove
 an image from the file-system. We decided to keep a reference count to know
-when is safe to actually delete a layer. The same issue of too many files under
-the same sub-catalog arose also for storing the layers, we used the same
-approach used for the unpacked images based on the use of super-directories.
+when it is safe to actually delete a layer. The same issue of too many files
+under the same sub-catalog arose also for storing the layers, we used the same
+approach used for the unpacked images based on the super-directories.
 
-The last section explored how we keep track of exactly which image is already
-store in the file-system storing the image catalog in a hidden subdirectory.
+The last section explored how we kept track of exactly which image is already
+stored in the file-system storing the image catalog in a hidden subdirectory.

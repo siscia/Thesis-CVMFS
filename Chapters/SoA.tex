@@ -2,10 +2,10 @@
 \chapter{State of the Art}\label{ch:SoA}
 %************************************************
 
-In this chapter we provide the state of the art for the technologies that are
+In this chapter we will provide the state of the art for the technologies that are
 of interest for this work. In Section \ref{sec:distribute} we will discuss the
 state of the art in distributed file system where we will see the major
-difference between CVMFS and other distribute file system. In Section
+difference between CVMFS and other distributed file system. In Section
 \ref{sec:provisioning} we will explore how provisioning and installation are
 done on computing clusters of various size, starting from the smallest up to
 the globally distributed one. Finally in Section \ref{sec:soalazy} we will
@@ -13,41 +13,42 @@ explore early achievement of working lazily when provision machines.
 
 \section{Distributed File System} \label{sec:distribute}
 
-Several distributed file system have been proposed and are available. One of
-the first implementation of a distributed file system is the Andrew File System
-(AFS) \cite{andrew}. It provides a read-write file system, however it guarantee
+Several distributed file systems have been proposed and are available. One of
+the first implementations of a distributed file system is the Andrew File System
+(AFS) \cite{andrew}. It provides a read-write file system, however it guarantees
 only weak consistency, hence read and write operations are directed only to
-locally cached copy of the file. The changed are propagated to the server when
-a file is eventually closed. AFS inform the client if a different user modify a
+locally cached copy of the file. The changes are propagated to the server when
+a file is eventually closed. AFS informs the client if a different user modifies a
 cached file using callbacks, but those callbacks are discarded after any
 communication error between the client and the server, including network
 failures or timeouts. The need to keep a constant connection open between the
 client and the server makes the client/server ration quite small, ~200. Hence
 for every 200 clients a new server machine is needed.
 
-Another commercial distributed file system is BeeGFS it has a different
-approach than AFS, since it is composed by three different components, the
-clients, the metadata server and the storage servers. The clients coordinate
-and informs the metadata servers which in turns coordinate the storage servers
-that, finally, are accessed by the clients.  Also this architecture of
-distributed file system relies on metadata components that bound the number of
-clients imposing an overhead.
+Another commercial distributed file system is BeeGFS \cite{beegfs} it has a
+different approach than AFS, since it is composed by three different
+components: the clients, the metadata servers and the storage servers. The
+client coordinate and informs the metadata servers which in turns coordinate
+the storage servers that, finally, are accessed by the clients.  Also this
+architecture of distributed file system relies on metadata components that
+bounds the number of clients imposing an overhead.
 
-Other approach to store huge amount of data produced Amazon S3 (Simple Storage
-Service). S3 does not provide a classical POSIX interface but an eventually
-consistent REST interface. Objects are created immediately but deletions will
-eventually happen in the future moreover it has no knowledge of permissions
-outside of a simple access control list, symbolic links or even folders. Due to
-this shortcomings S3 is not directly usable to distribute and instal software
-one HPC clusters, however it can be used as a simple layer to access the file
-leaving all the metadata handling to CVMFS. As mentioned in \ref{sec:cvmfs} the
-files provide by CVMFS are accessed using the HTTP protocol, they don't have to
-be in a web server managed by CVMFS but they can be in any accessible location.
+Another approach to store huge amount of data is Amazon S3 (Simple
+Storage Service) \cite{aws-s3}. S3 does not provide a classical POSIX interface
+but an eventually consistent REST interface. Objects are created immediately
+but deletions will eventually happen in the future. Moreover it has no knowledge
+of permissions outside of a simple access control list, symbolic links or even
+folders. Due to this shortcomings S3 is not directly usable to distribute and
+instal software one HPC clusters, however it can be used as a simple layer to
+access the file leaving all the metadata handling to CVMFS. As mentioned in
+Section \ref{sec:cvmfs} the files provided by CVMFS are accessed using the HTTP
+protocol. And they don't have to be in a web server managed by CVMFS but they can
+be in any accessible location.
 
-Up to our knowledge no distributed file system handle metadata like CVMFS does,
-indeed all the metadata queries to CVMFS are handle by the client themselves
-reading the catalogs files, hence the metadata operations are not a limitation
-anymore since they scale out with the number of client themselves. Of course
+To the best of our knowledge, no distributed file system handles metadata like
+CVMFS does, indeed all the metadata queries to CVMFS are handled by the client
+themselves reading the catalogs files, hence the metadata operations are not a
+limitation anymore since they scale out with the number of clients. Of course
 this is possible since CVMFS provides to the clients only a read interface and
 the write are all serialized in the CVMFS server component.
 
@@ -59,37 +60,39 @@ in complexity as the size of the cluster grows. In parallel we will see how the
 problem shifts from the handling of files to the handling of metadata.
 
 In Section \ref{subsec:soasmall} we will describe how installation and
-provision of machine is done in humble environemnt with very few machines. The
-need of automation will arise on bigger cluster, hence in Section
+provisioning of machines is done in humble set up with very few machines. The
+need of automation will arise on bigger clusters, hence in Section
 \ref{subsec:soacluster} we will describe how automatic tools help in
 provisioning local clusters. In Section \ref{subsec:soawlcg} we will explore
-the solution that were applied to the WLCG before CVMFS and their weakness.
+the solution that were applied to the WLCG before CVMFS and their weaknesses.
 Finally in Section \ref{subsec:soaruntime} we will explore proposed solution to
 the problem of managing run time dependencies in a globally distributed cluster
 like the WLCG.
 
 \subsection{Single o Local Machines and Small Clusters} \label{subsec:soasmall}
 
-Several system have been proposed to manage installation and provision of machines.
+Several systems have been proposed to manage installation and provisioning of
+machines.
 
 The simpler approach is of course the manual approach were the source code is
 downloaded on the local machine, compiled and finally installed. While this
 works fine for the expert user, it introduces a lot of difficulties and
 friction for users that are not experts. The compilation part is error prone
-and it may requires dependencies, so the user must be ready to doing a lot of
+and it may require dependencies, so the user must be ready to do a lot of
 research and even reading makefiles if necessary. Moreover, if the software has
 run-time dependencies, it is necessary for the user to install them as well,
 and so recursively.
 
 Of course there is no need to re-compile the software every time, moreover
 compilation is an expensive and quite technical step that not all users are
-confident in doing.  Indeed the package managers solves this kind of problem,
-the software is compiled once by expert on the software itself and distributed
-along with a script that install it in the most appropriate location in the
-system and with a series of dependencies. This is a major shift in the
-interface since now the user simply installs a package without caring of all
-its dependencies or without even needing a compiler. It is the package manager
-that will eventually install run time dependencies, directly or indirectly.
+confident in doing.  Indeed the package managers \cite{yum}, \cite{apt} solves
+this kind of problem, the software is compiled once by expert on the software
+itself and distributed along with a script that install it in the most
+appropriate location in the system and with a series of dependencies. This is a
+major shift in the interface since now the user simply installs a package
+without caring of all its dependencies or without even needing a compiler. It
+is the package manager that will eventually install run time dependencies,
+directly or indirectly.
 
 The distribution of packages poses already a challenge, if enough users are
 interested in the packages hosted in a single package manager, it would be
@@ -101,29 +104,29 @@ part of the traffic.
 \subsection{Local cluster} \label{subsec:soacluster}
 
 As long as the installation of software is manual and done in relatively small
-clusters package managers are suitable for hosting all the software and
+clusters, package managers are suitable for hosting all the software and
 provision all the servers.
 
-When the cluster start to grow, manual installation is not a solution anymore,
+When the cluster starts to grow, manual installation is not a solution anymore,
 indeed specialized tools are available to manage the state of a fleet of
 machines.
 
 \textit{Ansible} \cite{ansible}, \cite{provisioning} is a tool that helps in
-managing the installation of software in a fleet of machine. It is based on two
+managing the installation of software in a fleet of machines. It is based on two
 simple concepts, the \textit{inventory} and the \textit{playbook}. The
-inventory associate each machine that is managed to a set of tags. The playbook
+inventory associates each machine that is managed to a set of tags. The playbook
 is a set of statuses each associated with a tag. When provisioning a fleet of
 machines, Ansible tries to adapt the status of each server in a way that it
-respect the status declared in the playbook. As an example in the playbook we
+respects the status declared in the playbook. As an example in the playbook we
 may declare that the servers tagged as \texttt{web-server} need to have the
 \texttt{apache} service on, while the servers tagged as \texttt{build-node}
 needs to have the \texttt{gcc} package installed. In the first case Ansible
 will try to start the \texttt{apache} service while in the second case it will
 try to install the \texttt{gcc} package.
 
-A possible issue with Ansible is about the use of those servers, users may
+A possible issue with Ansible is about the use of those servers: users may
 login into the server, change their configuration to fix an urgent problem and
-then don't updates the Ansible playbooks. In the long term this causes a drift
+then do not update the Ansible playbooks. In the long term this causes a drift
 on configuration and settings that makes quite difficult to manage the fleet of
 services.
 
@@ -132,42 +135,43 @@ A solution to the drift in configuration is the use of a different tool,
 principle of Ansible but it constantly monitor the status of each machine
 reverting any changes.
 
-If different users need to access a shared pool of computing resource other
+If different users need to access a shared pool of computing resources, another
 solution consist in the use of \textit{virtual machines}. Each physical machine
-get partitioned into a set of different, isolated virtual machines where each
+gets partitioned into a set of different, isolated virtual machines where each
 users can install and configure its software. Moreover the image of the virtual
-machine itself may comes with software already installed and configured.
+machine itself may come with software already installed and configured.
 
 Providing software already installed in a machine is a major conceptual shift
 where we move from the user having the responsibility to install all the needed
-software to a model where the software was already in the system itself.
-Virtual machines while providing the stronger level of isolation possible in a
-shared environment are slow to set up and also slower than native performance.
+software to a model where the software is already in the system itself.
+However, virtual machines while providing the stronger level of isolation
+possible in a shared environment are slow to set up and also slower than native
+performance.
 
 An evolution of virtual machines are the containers: containers provide a
-smaller level of isolation than virtual machine but are much quicker to set up
+smaller level of isolation than virtual machines but are much quicker to set up
 and have close to native performance. Moreover containers are simple to build
-and their popularity is raising between developer as well. Indeed it is
+and their popularity is raising between developers as well. Indeed it is
 possible to set up a container that encapsulates all the status necessary to
-run a specific computation, this allow to move the container from a machine to
+run a specific computation: this allows to move the container from a machine to
 another without worrying anymore of run-time dependencies.
 
-All these solutions works well in local clusters, however all of them requires
+All these solutions work well in local clusters, however all of them requires
 to move all the necessary software on a local machine, also components that are
 not needed. Starting a fleet-wide installation using tools like
 \textit{Ansible} or \textit{Puppet} means that the package managers needs to
 serve at roughly the same time all the packages necessary by all the machines,
-which can quickly sum up to a lot of bandwidth. The use of virtual machines of
+which can quickly sum up to a lot of bandwidth. The use of virtual machines or
 containers is not better in this cases since it still requires to move a lot of
-content. In big cluster is common to provide local package managers and local
+content. In big cluster it is common to provide local package managers and local
 container registries.
 
 Providing the content to several different machines is a problem that can be
-solved by careful use of cache and optimization. Diving deeper into the
-containers worlds the OCI standard defines that each layer is identified by a
+solved by a careful use of caches and optimizations. Diving deeper into the
+containers world, the OCI standard defines that each layer is identified by a
 single unique digest. This helps since it provides an unique identifier to
 cache and, more importantly, by bundling together a lot of different files in a
-single tar files it sidestep the need of managing metadata for all the files in
+single tar files it sidesteps the need of managing metadata for all the files in
 a container. Still this comes at the cost of needing to download a big file
 even if its content is not all necessary. Similar consideration can be done for
 the provisioning of Virtual Machines.
@@ -177,10 +181,10 @@ the provisioning of Virtual Machines.
 With the respect of provisioning the WLCG and its modus operandi is an harsher
 environment that local cluster. Indeed it operates in a batch computation mode,
 where jobs are scheduled and started all together in a wide fleets of machines,
-possibly in geographical different data centers. A provisioning structures that
-relies on package managers or simple containers will witness an huge peak in
+possibly in geographical different data centers. A provisioning structure that
+relies on package managers or simple containers will witness a huge peak in
 the bandwidth request that will slow down the provisioning itself.  Moreover
-scientific software is usually quite large, also in the order of 20G and the
+scientific software is usually quite large, also in the order of 20GB and the
 provisioning of relatively few machines is sufficient to cause a big spike in
 the bandwidth request. Indeed several solution have been proposed and tested to
 address this issue.
@@ -188,8 +192,8 @@ address this issue.
 The \textit{Andrew File System} \cite{andrew} (AFS) is a distributed read-write
 file system optimized for home directories on globally distributed
 workstations. AFS provides a global name space (/afs) partitioned into
-\textit{cell} and \textit{volumes}. Scientific collaborations can host the
-authoritative copies of their experiment software on public volumens (cell
+\textit{cells} and \textit{volumes}. Scientific collaborations can host the
+authoritative copies of their experiment software on public volumes (cell
 /afs/cern.ch). Using AFS, scientific software need to be installed only once in
 the server in order to be used by several clients.  Since AFS needs to keep the
 connection state for all its clients it has a low client/server ration with is
@@ -228,14 +232,14 @@ Other than the distribution of content, CERN faced the problem of managing
 run-time dependencies. A possible solution to this problem would be to
 statically link all the dependencies, but this would generate extremely big
 binaries.  Another solution would be to carefully managing all the software
-installed on the machine, including all the recursive dependencies. However this
+installed on the machines, including all the recursive dependencies. However this
 clash with the WLCG model where jobs can migrate from a data center to another
 along with their dependencies.  Moreover sometimes even a very careful
-installation it is not sufficient since is possible that two application that
+installation is not sufficient since it is possible that two application that
 could run on the same machine have clashing dependencies.
 
 The problem of how to manage runtime dependency is been solved outside CERN in
-several different way.
+several different ways.
 
 On small scale it is possible to use simple package managers that automatically
 install the dependencies, however they suffer of few different problem. First
@@ -284,7 +288,7 @@ Few other system have been proposed to address the problem using a similar
 architecture. The \textit{cvmfs/graphdriver} \cite{graphdriver-plugin} allows
 us to run Docker images starting from a \textit{recipe} file that  list the
 layers to mount and their location in the file system. Unfortunately a way to
-provide the \textit{thin images} was not provided, moreover it was not provide
+provide the \textit{thin images} was not provided, moreover it was not provided
 a way to structure the file system itself. Slacker \cite{slacker} tackle the
 same problem but it uses a very different implementation. Their work is based
 on NFS and flatten layers. All the layers of an image get flattened into a
@@ -296,7 +300,7 @@ performance thanks to the implementation of the NFS they use that relies on
 network disks. We lack the details about the NFS used by Slacker but we believe
 that their performance may be strongly influenced by the size of the cluster.
 
-Similarly to Slacker in another work Nicolae et al. \cite{back-forth} propose
+Similarly to Slacker in another work Nicolae et al. \cite{back-forth} proposed
 another lazy structure this time to run Virtual Machines. They trap the IO to
 the Virtual Machine image using FUSE and redirect those call into a shared
 read-write file system backed by local disk on each machine.  Similarly to
