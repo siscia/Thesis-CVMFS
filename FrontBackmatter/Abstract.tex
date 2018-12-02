@@ -10,18 +10,61 @@
 \let\cleardoublepage\relax
 
 \chapter*{Abstract}
-Short summary of the contents in English\dots a great guide by
-Kent Beck how to write good abstracts can be found here:
-\begin{center}
-\url{https://plg.uwaterloo.ca/~migod/research/beckOOPSLA.html}
-\end{center}
+The problem of software distribution has always been an issue at CERN, given
+the massive dimension of the software used for analyzing the data they collect
+from the LHC. The problem of software distribution is been solved by the use of
+a distributed, read-only file system like CernVM-FS that allows distributing
+binaries to all the geographically distributed data-centers used for High
+Energy Physics computation. However, the problem of managing run-time
+dependencies is still open, indeed, some application can run perfectly well in
+an environment while not working in a different environment.
 
-\vfill
+The problem of run-time dependencies is already been solved in the industry
+with the use of containers, immutable computing environment which encapsulate
+all the run-time dependencies of an application allowing it to run with ease on
+different machines. Moreover, containers are becoming always more widespread
+also inside CERN, suggesting that they will be a key component for running
+future High Energy Physics workload.
 
-\begin{otherlanguage}{ngerman}
-\pdfbookmark[1]{Zusammenfassung}{Zusammenfassung}
-\chapter*{Zusammenfassung}
-Kurze Zusammenfassung des Inhaltes in deutscher Sprache\dots
+However, containers are difficult to distribute in an efficient way since their
+content is stored inside a few large files, moreover it has been shown that
+most of the content of containers is not used while running the application
+itself. Efficient content distribution and managing runtime dependencies should
+not be contrasting goals. Hence, in this work, we present a way to efficiently
+distribute the content of containers in order to avoid waste of bandwidth and
+time.
+
+\newpage
+
+\begin{otherlanguage}{italian}
+\chapter*{Sommario}
+
+Il problema della distribuzione del software è sempre stato pressante al CERN,
+        questo si spiega visto l'enorme dimensione del software usato per
+        analizzare i dati raccolti dal LHC. Il problema della distribuzione del
+        software è stato risolto con l'uso di read-only file system distribuiti
+        come CernVM-FS che permette la distribuzione dei binari verso tutti i
+        data-center geograficamente distribuiti usati nella ricerca della
+        fisica delle alte energie. Però, il problema di gestire le dipendenze a
+        run-time del software è rimasto intoccato, infatti qualche applicazione
+        può funzionare perfettamente in un ambiente mentre non funzionare in un
+        ambiente diverso. Il problema della gestione delle dipendeze a run-time
+        è stato risolto nell'industria con l'uso dei containers, ambienti di
+        computazione immutabili che raccolgono tutte le dipendenze a run-time
+        di una applicazione permettendo di far girare la stessa applicazione,
+        semplicemente, su macchine diverse. In più containers stanno diventando
+        sempre più diffusi anche all'interno del CERN, suggerendo che saranno
+        una componente chiave per applicative della fisica delle alte energie
+        nel prossimo futuro. Sfortunatamente i containers sono difficili da
+        distribuire in modo efficiente dato che sono memorizzati come pochi
+        grandi file, inoltre è stato anche mostrato come la magior parte del
+        contenuto di un contaner non è realmente usato quando si esegue la
+        applicazione stessa. Distribuzione efficiente del contenuto e gestione
+        delle dipendenze a run time non dovrebbero essere obbiettivi
+        constrastanti. Quindi, in questo lavoro presentiamo un modo per
+        distribuire il contenuto di containers in modo efficiente per evitare
+        sprechi di banda e tempo.
+
 \end{otherlanguage}
 
 \endgroup

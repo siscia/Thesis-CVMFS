@@ -178,16 +178,18 @@ the provisioning of Virtual Machines.
 
 \subsection{WLCG environment} \label{subsec:soawlcg}
 
-With the respect of provisioning the WLCG and its modus operandi is an harsher
-environment that local cluster. Indeed it operates in a batch computation mode,
-where jobs are scheduled and started all together in a wide fleets of machines,
-possibly in geographical different data centers. A provisioning structure that
-relies on package managers or simple containers will witness a huge peak in
-the bandwidth request that will slow down the provisioning itself.  Moreover
-scientific software is usually quite large, also in the order of 20GB and the
-provisioning of relatively few machines is sufficient to cause a big spike in
-the bandwidth request. Indeed several solution have been proposed and tested to
-address this issue.
+The WLCG poses several challenges with the respect of provisioning.  First of
+all it is a geographically distributed data center, hence in order to avoid
+slow and inter-data center communication is necessary to cache all the
+necessary binaries in each data center.  Then it operates in batch mode, hence
+if several jobs started all together in different machines and if each of them
+would need to download binaries or containers, they will quickly overload both
+the network infrastructure and the content provider.  Moreover, scientific
+software is usually quite large, as an example the \textit{atlas/analysisbase}
+\footnote{We are refering to the Docker image relative to the version 21.2.56
+of the atlas/analysisbase tools.} Docker image, compressed, is roughly 1GB on
+size.  Indeed, several solution have been proposed and tested to address these
+issues.
 
 The \textit{Andrew File System} \cite{andrew} (AFS) is a distributed read-write
 file system optimized for home directories on globally distributed

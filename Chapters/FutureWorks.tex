@@ -1,5 +1,5 @@
 %************************************************
-\chapter{Conclusion and Future Works}\label{ch:FutureWorks}
+\chapter{Conclusion and Future Work}\label{ch:FutureWorks}
 %************************************************
 
 In this work we have presented a way to merge efficient run time dependency
@@ -8,52 +8,52 @@ provided by CVMFS.
 
 The proposed methodology exposed on Chapter \ref{ch:Methodology} is based on
 providing a POSIX file system that container runtime can use to load their
-content. The use of container technologies allows us to efficiently manage
-runtime dependencies logically packing them in different layers exposed as
-directories.  We build such file system on CVMFS to exploit its efficient
-content distribution mechanism. This forced some of our design decision
-regarding the file system tree like the use of \textit{super directories},
-however the exact same structure is applicable also to different file system,
-not only to CVMFS. 
+content. The use of containers allow to efficiently manage runtime dependencies
+logically packing them in different layers exposed as directories.  We build
+such file system on CVMFS to exploit its efficient content distribution
+mechanism. This forced some of our design decision regarding the file system
+tree like the use of \textit{super directories}, however the exact same
+structure is applicable also to different file system, not only to CVMFS. 
 
-The proposed methodology have been implemented and explored on Chapter
-\ref{ch:Implementation} we have implement a software capable of creating and
-managing the whole proposed file system from ingesting the containers content
-to deleting it without breaking old images. Moreover we have concluded the work
-started with the \textit{cvmfs/graphdriver} that provided only a way to use the
-\textit{thin images} while we finally propose a methodology to easily produce
-them starting from stander Docker \textit{fat} image and deploy the
-\textit{thin images} on standard Docker Registries to easy distribution.
+The implementation of the proposed methodology have been explored on Chapter
+\ref{ch:Implementation} where we have described a software capable of creating
+and managing the whole proposed file system from ingesting the containers
+content to deleting it without breaking old images. Moreover we have concluded
+the work started with the \textit{cvmfs/graphdriver} that provided only a way
+to use the \textit{thin images} while we finally proposed a methodology to
+easily produce them starting from standard Docker \textit{fat} image and deploy
+the \textit{thin images} on standard Docker Registries for an easy
+distribution.
 
-Finally on Chapter \ref{ch:Results} we have show the advantages that the
-proposed system bring in terms of startup time of uncached containers and
+Finally, on Chapter \ref{ch:Results} we have shown the advantages that the
+proposed system brings in terms of startup time of uncached containers and
 bandwidth consumption while at the same time not imposing run time penalties.
 
 The final work is in a stable state and there are plans to actually deploy it
 in production inside CERN, nevertheless several further advancement are
-possible with the respect of increasing the set of supported containers
-run-times or improving the software that manages the file system.
+possible with respect to increasing the set of supported container run-times or
+improving the software that manages the file system.
 
 For what concerns the run-times we believe that similar work to the one done
 for Docker with the \textit{cvmfs/graphdriver} plugin can be done also for
 different technologies. In particular we are confident that the approach of
 \textit{thin images} can be adopted also by \textit{containerd}
 \cite{containerd}, this time implementing a custom \textit{snapshotter} instead
-of a Docker graphdriver plugin. Different container run-times necessity further
+of a Docker graphdriver plugin. Different container run-times needs further
 investigation.
 
 A big limitation to lazily serve the content for containers using lazy systems
 like CVMFS is the OCI standard. Container run-times that follow the OCI
-standard do not exposes any interface to actually load custom content into the
-container itself and relies simply on tarballs to provide the content, hence
-\textit{hacks} like the one in the \textit{cvmfs/graphdriver} are necessary. A
-solution could be a custom container run-time which provide the possibility to
-specify how the content should be loaded and from where.
+standard do not expose any interface to actually load custom content into the
+container itself, but they rely simply on tarballs to provide the content,
+hence \textit{hacks} like the one in the \textit{cvmfs/graphdriver} are
+necessary. A solution could be a custom container run-time which provides the
+possibility to specify how the content should be loaded and from where.
 
-Another improvement to the system is about the tool that build the file system
-structure. It could be re-structured to limit the cyclomatic complexity in
-order to allow further enhancement. Another big improvement would be to exploit
-to the fullest the transactional interface of CVMFS. Indeed several transaction
-are used when ingesting a new image into the file system. An improvement would
-be to use only a single transaction for image.
+Another improvement to the system is related to the tool that builds the file
+system structure. It could be re-structured to limit the cyclomatic complexity
+in order to allow further enhancement. Another big improvement would be to
+exploit to the fullest the transactional interface of CVMFS. Indeed several
+transactions are used when ingesting a new image into the file system. An
+improvement would be to use only a single transaction per image.
 

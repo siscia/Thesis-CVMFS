@@ -6,7 +6,7 @@ CERN, European Organization for Nuclear Research, (French: Conseil européen
 pour la recherche nucléaire) is an European research organization that operates
 the largest particle physics laboratory in the world.
 
-Its mission is to: 
+Its mission is to:
 \begin{itemize}
 	\item Provide a unique range of particle accelerator facilities that enable research at the forefront of human knowledge
 	\item Perform world-class research in fundamental physics
@@ -22,20 +22,28 @@ It host the instrument of the 4 biggest physic collaboration:
 \end{itemize}
 
 CERN host also a plethora of smaller physical collaborations that benefits from
-the instruments, know how, network effect and services availables.
+the instruments, know how, network effect and services available.
 
 Between the services offered to its users the computing service is one of the
-most interesting. Indeed CERN host and manage one of the biggest computing
-data center used for public research.
+most interesting. Indeed CERN host and manage the WLCG \cite{grid:website}, one
+of the biggest computing data center used for public research.
 
 An issues that affect the operations inside the data center is the provisioning
-of software on the computing servers.
+of software on the computing servers. Several solution have been proposed and
+eventually the problem is been solved with the use of CernVM-FileSystem
+\cite{cvmfs}, a read only file-system that provides a scalable, reliable and
+low maintenance software distribution system.
 
-A specialization of the same problem is the provisioning of containers images.
+However simply provide the servers with the necessary software is not enough.
+Indeed also run time dependencies need to be managed to ensure smooth
+operations. A possible solution to manage run time dependencies is the use of
+containers. Containers pack up all the run time dependencies in an immutable
+file system so that they can execute their application always in the same
+environment, even if running on different machines. 
 
-The general problem of software provisioning is been solved by the use of
-CernVM-FileSystem \cite{cvmfs}, a read only file-system that provides a scalable, reliable
-and low maintenance software distribution system.
+However, distribute containers content using CVMFS is not convenient, since the
+containers are distributed as a set of big files and this works against the
+working principle and performance of CVMFS.
 
 This thesis will explore the problem of creating a suitable read-only
 file-system structure to provision containers images on computing nodes. We
@@ -46,16 +54,16 @@ This thesis is composed by several parts: The background will provide the
 necessary information on the CERN computing architecture (WLCG), then we will
 explore CVMFS and why it is a good fit for the CERN computing architecture, the
 last part of the background will cover the integration between CVMFS and
-containers technologies.  The state of the art will explore what alternatives
-are available for software distribution in general and for distribution of
-images.  We will then define the problem that this thesis is trying to solve
-and few metrics of interest in our specific case.  The methodology part will
-explain the details of the solution we propose for this specific problem.  The
-implementation chapter will focus on how the proposed methodology is been put
-in practise.  We will evaluate the result of the proposed methodology and
-implementation on the result part following the metrics that were previously
-proposed.  Finally we will propose future work and enhancement to the
-implementation
+containers technologies.  The state of the art will start by exploring
+different distributed file system, then we will explore what alternatives are
+available for software distribution in different setting, from small data
+center up to global data centers like the WLCG. We will then define the problem
+that this thesis is addressing.  The methodology part will explain the details
+of the solution we propose for this specific problem.  The implementation
+chapter will focus on how the proposed methodology is been put in practise.  We
+will evaluate the result of the proposed methodology and implementation on the
+result part following the metrics that were previously proposed.  Finally we
+will propose future work and enhancement to the implementation.
 
 \chapter{Background and Problem Definition}\label{ch:background}
 
@@ -121,8 +129,6 @@ and used in the past, eventually it settled for the use of CernVM-FileSystem
 This section will explore CernVM-FileSystem, we will start with an high level
 overview of CVMFS, then we will explore what happens when a file is requested.
 
-% need to really talk about the sub-catalog system
-
 \subsection{CVMFS High Level Overview}
 
 CernVM-FileSystem \cite{cvmfs} provides a scalable, reliable and
@@ -158,7 +164,12 @@ also the URL where to download the files.
 
 A root catalog is available in a know path, and, if the file-system grows too
 large, the root catalog links to other sub-catalogs. The use of sub-catalogs
-allows to keep each catalog small improving the query time.
+allows to keep each catalog small improving the query time. Moreover, while
+normal files hosted in CVMFS can be split into small blocks and each block can
+be serve separately, this is not supported for catalogs. Indeed each
+sub-catalog needs to be fully downloaded before it can be used. Hence big
+catalogs can be a bottleneck both with the respect of query time, download time
+and bandwidth.
 
 \subsection{CVMFS Details}\label{subsec:cvmfs-details}
 
@@ -313,7 +324,9 @@ to mount the container file system. If it detects that the image is a standard
 \textit{thin} image it mounts the layers from the CVMFS read-only file system.
 
 \begin{figure}
-\includegraphics{gfx/RunThinImages}
+\begin{center}
+\includegraphics[scale=0.5]{gfx/RunThinImages}
+\end{center}
 \caption{Decision proces for running docker thin images}
 \label{fig:flowchart-run-thin-image}
 \end{figure}
