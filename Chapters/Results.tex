@@ -133,7 +133,7 @@ In this section we are going to show how the presence of sub-catalogs affect the
 
 Similarly to the above case we present the case where the catalogs contains 10, 20, 30 and 40 images and we compare it with the baseline case, hence with the case that use the structured showed in this work.
 
-The results are show on Table \ref{} and on Figure \ref{fig:bandwidth-usage}
+The results are show on Table \ref{tab:bandwith-catalog} and on Figure \ref{fig:bandwidth-usage}
 
 \begin{figure}[]{}
     \includegraphics[width=\textwidth]{gfx/bandwidth-catalog}
@@ -141,6 +141,16 @@ The results are show on Table \ref{} and on Figure \ref{fig:bandwidth-usage}
         \label{fig:bandwidth-usage}
 \end{figure}
 
+
+\begin{table}[]
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+                & Base Case & 10  & 20   & 30   & 40    \\ \hline
+Bandwidth Usage & 64.25     & 624 & 1651 & 8020 & 12540 \\ \hline
+\end{tabular}
+\caption{Comparison of the bandwidth used to start the containers 100 times with and without use of subcatalogs. Units in MB.}
+\label{tab:bandwith-catalog}
+\end{table}
 
 Also in this case we can see how structuring the file system using sub-catalogs
 improves the bandwidth efficiency.
