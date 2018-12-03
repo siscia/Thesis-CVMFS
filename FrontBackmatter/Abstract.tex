@@ -9,25 +9,28 @@
 \let\cleardoublepage\relax
 \let\cleardoublepage\relax
 
-\chapter*{Abstract}
+\chapter*{Abstract} 
+
 The problem of software distribution has always been an issue at CERN, given
 the massive dimension of the software used for analyzing the data they collect
-from the LHC. The problem of software distribution is been solved by the use of
-a distributed, read-only file system like CernVM-FS that allows distributing
-binaries to all the geographically distributed data-centers used for High
-Energy Physics computation. However, the problem of managing run-time
+from the LHC. The problem of software distribution has been historically solved
+by the use of a distributed, read-only file system like CernVM-FS that allows
+distributing binaries to all the geographically distributed data-centers used
+for High Energy Physics computation. However, the problem of managing run-time
 dependencies is still open, indeed, some application can run perfectly well in
 an environment while not working in a different environment.
 
 The problem of run-time dependencies is already been solved in the industry
-with the use of containers, immutable computing environment which encapsulate
+with the use of containers, immutable computing environments which encapsulate
 all the run-time dependencies of an application allowing it to run with ease on
-different machines. Moreover, containers are becoming always more widespread
-also inside CERN, suggesting that they will be a key component for running
-future High Energy Physics workload.
+different machines. Moreover, containers are becoming more widespread also
+inside CERN, suggesting that they will be a key component for running future
+High Energy Physics workload. However the integration between containers and
+CernVM-FS is not yet mature enough and no automatic tool to manage the whole
+lifetime of a container images inside CernVM-FS exists yet.
 
-However, containers are difficult to distribute in an efficient way since their
-content is stored inside a few large files, moreover it has been shown that
+Indeed, containers are difficult to distribute in an efficient way since their
+content is stored inside a few large files. Moreover it has been shown that
 most of the content of containers is not used while running the application
 itself. Efficient content distribution and managing runtime dependencies should
 not be contrasting goals. Hence, in this work, we present a way to efficiently
@@ -39,31 +42,113 @@ time.
 \begin{otherlanguage}{italian}
 \chapter*{Sommario}
 
-Il problema della distribuzione del software è sempre stato pressante al CERN,
-        questo si spiega visto l'enorme dimensione del software usato per
-        analizzare i dati raccolti dal LHC. Il problema della distribuzione del
-        software è stato risolto con l'uso di read-only file system distribuiti
-        come CernVM-FS che permette la distribuzione dei binari verso tutti i
-        data-center geograficamente distribuiti usati nella ricerca della
-        fisica delle alte energie. Però, il problema di gestire le dipendenze a
-        run-time del software è rimasto intoccato, infatti qualche applicazione
-        può funzionare perfettamente in un ambiente mentre non funzionare in un
-        ambiente diverso. Il problema della gestione delle dipendeze a run-time
-        è stato risolto nell'industria con l'uso dei containers, ambienti di
-        computazione immutabili che raccolgono tutte le dipendenze a run-time
-        di una applicazione permettendo di far girare la stessa applicazione,
-        semplicemente, su macchine diverse. In più containers stanno diventando
-        sempre più diffusi anche all'interno del CERN, suggerendo che saranno
-        una componente chiave per applicative della fisica delle alte energie
-        nel prossimo futuro. Sfortunatamente i containers sono difficili da
-        distribuire in modo efficiente dato che sono memorizzati come pochi
-        grandi file, inoltre è stato anche mostrato come la magior parte del
-        contenuto di un contaner non è realmente usato quando si esegue la
-        applicazione stessa. Distribuzione efficiente del contenuto e gestione
-        delle dipendenze a run time non dovrebbero essere obbiettivi
-        constrastanti. Quindi, in questo lavoro presentiamo un modo per
-        distribuire il contenuto di containers in modo efficiente per evitare
-        sprechi di banda e tempo.
+Il CERN e' una organizzazione Europea che opera il piu' grande laboratorio
+        della fisica particellare al mondo.
+
+La sua missione e' di:
+
+\begin{itemize}
+        \item Rendere disponibile un unico assortimento di accelleratori per permettere la ricerca sui confini della conoscienza umana
+        \item Effettuare ricerca di primo ordine nel campo della fisica fondamentale
+        \item Unire persone da tutto il  mondo per migliorare i confini della scienza e della tecnologia per il beneficio di tutti.
+\end{itemize}
+
+Il CERN ospita la strumentazione delle 4 piu' grandi collaborazioni nel campo
+        della fisica: ALICE, ATLAS, CMS e LHCb.
+
+Sono ospitati al CERN anche un insieme di collaborazioni nel campo della fisica
+        piu' piccole che beneficiano delle strumentazioni, conoscienze, effetto
+        network e servizi disponibili.
+
+Tra i servizi che il CERN offre il ai suoi utenti quello informatico e' uno dei
+        piu' interesanti. Infatti il CERN ospita e gestisce il WLCG
+        \cite{grid:website}, uno dei piu' grandi centri di calcolo usato per la
+        ricerca pubblica.
+
+Un problema che influenza le operazioni dentro il centro di calcolo e'
+        come installare e impostare il software sui singoli computer. Il
+        software usato nell ambito scientifico e' di grandi dimensioni ed e' molto
+        dispendioso in tempo di banda e tempo spostare ogni binario da una
+        posizione centrale ad ogni singolo computer. Diverse soluzioni sono
+        state proposte e alla fine is problema e' stato risolto con l'uso di
+        CernVM-FileSystem \cite{cvmfs}, un file system di sola lettura che mette a
+        disposizione un sistema di distribuzione software che e' scalabile,
+        solido e che richiede poca manutenzione.
+
+Provedere solo alla distribuzione del software, pero' non e' sufficiente.
+        Infatti anche le dipendenze a run time devono essere gestite per
+        garantire operazioni senza problemi. Una possibile soluzion per gestire le
+        dipendenze a run time e' l'uso dei containers. I containers
+        impacchettano tutte le dipendenze in un file system immutabile cosi' da
+        poter eseguire l'applicazione sempre nello stesso ambiente anche se su
+        macchine diverse.
+
+Distribuire il contenuto dei containers usando CVMFS non e' pratico, visto che
+        i containers sono distribuiti come un insieme di grandi files e questo
+        e' contrario ai principi di funzionamento di CVMFS che funziona meglio
+        con tanti piccoli file.
+
+Questa tesi esplorera' il problema di create un file system di sola lettura
+        addatto per distribuire il contenuto di containers sui nodi di
+        computazione. Descriveremo la struttura di un file system di sola
+        lettura generico e implementero la metodologia proposta con CVMFS.
+
+Questa tesi e' divisa in diverse parti: Inizieremo fornendo tutte le
+        informazioni necessarie sulla architettura del centro di calcolo del
+        CERN e sul WLCG, poi esploreremo CVMFS e spiegheremo perche' e' un
+        modello molto adatto alla architetura geograficamente distribuita del
+        WLCG. Continueremo discutendo l'integrazione tra i containers e CVMFS
+        introducendo il problema che questa tesi sta affrontando. Poi
+        esploreremo lo stato dell'arte nei file system distribuiti, come centri
+        di calcolo di diverse dimensioni sono gestiti ed infine esploreremo
+        altri progetti in letteratura che lavorano in modo pigro come CVMFS. A
+        questo punto introduremmo la nostra metodologia per integrare CVMFS e
+        containers. Dopo che abbiamo introdotto la metodologia discuteremo come
+        essa e' stata implementata nel nostro lavoro. Infine valuteremo i
+        risultati del nostro lavoro e suggeriremo possibili miglioramenti.
+
+La tesi e' strutturata come segue: 
+
+\begin{itemize} 
+        
+        \item Il Capitolo \ref{ch:background} fornisce tutte le informazioni
+                necessarie di base. Inizia esplorando l'architettura del centro
+                di calcolo del CERN, poi spiega il ruolo di CVMFS, la sua
+                architettura di alto livello e come e perche' e' uno strumentto
+                adatto all ambiente del CERN.  Il capitolo illustrera' anche le
+                run time di containers che verranno usate in questo lavoro.
+                Alla fine forniremo la definizione del problema che questa tesi
+                si pone.  
+        
+        \item Il Capitolo \ref{ch:SoA} descrivera' lo stato dell'arte.
+                Inizieremo illustrando alcuni file system distribuiti e la loro
+                architettura, Poi descriveremo come centri di calcolo di tutte
+                le dimensioni sono operati e gestiti. L'ultima parte di questo
+                capitolo esplorera' altri progetti nella letteratura che
+                lavorano in modo pigro come CVMFS.
+
+        \item Il Capitolo \ref{ch:Methodology} descrivera' la metodologia che
+                puo' essere usata da un file system di sola lettura generico
+                come CVMFS per ospitare immagini di containers e raggiungere
+                una distribuzione del contenuto efficiente.
+
+        \item Il Capitolo \ref{ch:Implementation} mostrera' i dettagli della
+                implementazione e come il file system e' gestito e creato sopra
+                CVMFS usando del software apposito.
+                
+        \item Il Capitolo \ref{ch:Results} mostrera' i risultati di questo
+                lavoro comparando il tempo di avvio di containers in scenari
+                diversi, cosi' come l'uso di banda.
+
+        \item Il Capitolo \ref{ch:FutureWorks}, infine, esplorera' come questo
+                lavoro puo' essere migliorato. Mostreremo anche alcune
+                direzioni per lo sviluppo della distribuzione dei containers
+                che pensiamo siano di interesse.
+
+\end{itemize}
+
+
+
 
 \end{otherlanguage}
 

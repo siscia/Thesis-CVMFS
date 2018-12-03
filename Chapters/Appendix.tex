@@ -1,0 +1,144 @@
+%************************************************
+\chapter{Appendix}\label{ch:Appendix}
+%************************************************
+
+
+\section{Code to get the numbers}\label{sec:benchmark-code}
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of singularity with image hostes in CVMFS using CVMFS cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do 
+    /usr/bin/time -f "%U,%S,%E" \
+        singularity exec \
+            /cvmfs/thin.osg.cern.ch/library/python:latest \
+            python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of singularity with image hostes in CVMFS without cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do 
+    #cleanup the cvmfs cache
+    cvmfs_config wipecache >> /dev/null; 
+    
+    /usr/bin/time -f "%U,%S,%E" \
+        singularity exec \
+            /cvmfs/thin.osg.cern.ch/library/python:latest \
+            python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of docker thin-images using both CVMFS and Docker cache}]
+#!/bin/bash
+
+docker pull thin-python:latest
+
+for i in {1..101}; 
+do 
+    /usr/bin/time -f "%U,%S,%E" \
+        docker run thin-python:latest python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of docker thin-images without Docker nor CVMFS cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do 
+    #cleanup the cvmfs cache
+    cvmfs_config wipecache >> /dev/null; 
+    
+    # remove the layers from the docker cache
+    docker rmi thin-python:latest -f >> /dev/null; 
+    
+    # cleanup any remaining data from the system
+    docker system prune -a -f; 
+
+    /usr/bin/time -f "%U,%S,%E" \
+        docker run thin-python:latest python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+
+
+\begin{lstlisting}[language=bash,
+caption={Script used to capture the startup time of Docker standard images without Docker cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do 
+    # remove the local image of python
+    docker rmi -f python:latest; 
+
+    # cleanup any remaining data from the system
+    docker system prune -a -f; 
+    
+    /usr/bin/time -f "%S,%U,%E" \
+        -o ~/start-time-docker-standard-no-cache.csv -a \
+        docker run python:latest python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of Singularity running Docker standard images without Singularity cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do
+    # cleanup the singularity cache directory
+    rm -rf /root/.singularity/docker; 
+    
+    /usr/bin/time -f "%S,%U,%E" \
+        -o ~/start-time-singularity-standard-no-cache.csv -a \
+        singularity exec docker://python:latest \
+            python -c "quit()"; 
+done
+\end{lstlisting}
+
+
+
+\begin{lstlisting}[language=bash,
+    caption={Script used to capture the startup time of Singularity running images unpacked on the local file-system, hence with cache}]
+#!/bin/bash
+
+for i in {1..101}; 
+do 
+    /usr/bin/time -f "%S,%U,%E" \
+        -o ~/start-time-singularity-standard.csv -a \
+        singularity exec python_latest/ python -c "quit()"; 
+done
+
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption={Script used to capture the startup time of docker thin-images without cache}]
+#!/bin/bash
+for i in {1..101}; 
+do 
+    # clean the CVMFS cache
+    cvmfs_config wipecache >> /dev/null; 
+        
+    # clean the docker cache
+    docker rmi thin-osg/library/python:latest -f >> /dev/null; 
+        
+    # run and measure the start up time
+    /usr/bin/time -f "%S,%U,%E" \
+        -o ~/start-time-docker-no-cache.csv -a \ 
+        docker run thin-osg/library/python:latest \
+            python -c "quit()"; 
+done
+\end{lstlisting}

@@ -2,15 +2,16 @@
 \chapter{Results}\label{ch:Results}
 %************************************************
 
-In this section we will explore the result of this work. First we will focus on
-the startup time of containers, and we will make two different comparison for
-this metric. First we will compare the use of CVMFS structured as explained in
-this work as content distribution mechanism against the standard way of
-distributing content. Then we will compare a more naive use of CVMFS without
-the use of \textit{super-directories} and sub-catalogs against the proposed
-file system structure that instead exploit the sub-catalog mechanism. 
+In this section we will explore the experimental results of this work. First we
+will focus on the startup time of containers, and we will make two different
+comparison for this metric. First we will compare the use of CVMFS structured
+as explained in this work as content distribution mechanism against the
+standard way of distributing content. Then we will compare a more naive use of
+CVMFS without the use of \textit{super-directories} and sub-catalogs against
+the proposed file system structure that instead exploit the sub-catalog
+mechanism. 
 
-Then we compare the use of bandwidth, again we will make two different
+Then we will compare the use of bandwidth, again we will make two different
 comparison. The first will compare the use of CVMFS as content distribution
 layer against the normal distribution mechanism used for containers base on
 Docker registries. Then we will compare the use of the proposed file system
@@ -29,24 +30,24 @@ time of container hosted in CVMFS using the proposed file system structure
 against hosting containers in CVMFS but without the use of
 \textit{super-directories} and subcatalogs.
 
-On both part we will use a representative use case, we will start the standard
+On both parts we will use a representative use case, we will start the standard
 python container, start the python interpreter and immediately quit the
 interpreter itself executing the \textit{quit()} command. We decide to use this
 use case since it requires to have access to the python interpreter in the
-container, which is an executable of not negligible size, 3.4MB. Moreover, we 
-choose the standard python image because is a widely know image used during both
-developing and production work. The size of the whole image is of roughly 923MB.
+container, which is an executable of not negligible size: 3.4MB. Moreover, we 
+chose the standard python image because is a widely known image used during both
+development and production work. The size of the whole image is of roughly 923MB.
 
-All the measurement are collected using the standard unix util \textit{time}.
+All the measurements are collected using the standard unix util \textit{time}.
 
 \subsection{Use of CVMFS vs. Standard containers distribution mechanism}
 
-For this analysis we propose 8 scenarios that we synthesize in the Table
+For this analysis we propose 8 scenarios that we synthesize in Table
 \ref{tab:benchmark} and on the graph of Figure \ref{fig:startup-time}. The
-\textit{Thin-Image on CVMFS} columns represent the startup time of containers
-which content is hosted in the CVMFS architecture discussed. The \textit{Naive}
-columns represent the start up time of containers using the default
-distribution system based on Docker Registries.
+\textit{Thin-Image on CVMFS} row represent the startup time of containers which
+content is hosted in the CVMFS architecture discussed in this work. The
+\textit{Default} columns represent the start up time of containers using the
+default distribution system based on Docker Registries.
 
 The code that we used to obtain the number is available on the listing on
 Section \ref{sec:benchmark-code}
@@ -58,7 +59,7 @@ Section \ref{sec:benchmark-code}
 \multicolumn{2}{|l|}{}                             & Avg          & STD         & Avg            & STD          \\ \hline \hline
 \multirow{2}{*}{Thin-Image on CVMFS} & Singularity & 10.31        & 4.38        & 29.13          & 4.02         \\ \cline{2-6} 
                                      & Docker      & 96.74        & 5.40        & 180.02         & 35.13        \\ \hline \hline
-\multirow{2}{*}{Naive}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
+\multirow{2}{*}{Default}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
                                      & Docker      & 95.26        & 5.29        & 1279.21        & 168.99       \\ \hline
 \end{tabular}
 \caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of seconds. $n = 100$}
@@ -85,11 +86,40 @@ In this section we are going to analyze how the use of sub-catalogs affect the
 startup performance. Differently from the above test, in this case the
 differences lies mostly on the uncached case. Indeed when the sub-catalog is
 already downloaded and cached in the local client the time difference is
-negligible. For this test, one on side we serve the containers using the file
+negligible. For this test, as base case we use the containers served using the file
 system structure presented in this work, on the other side we serve the
 containers without using sub-catalogs. Moreover, in the case without
-sub-catalogs we present the case where the whole repository contains 1, 10,
+sub-catalogs we present the case where the whole repository contains 10,
 20, 30, 40 and 50 images.
+
+We used the Singularity runtime for this test that being faster to run is less
+influenced by the run time overhead. Moreover, the base case is equivalent to
+the case showed in the previous test, using the Singularity run time, served by
+CVMFS without cache. Hence the base case we are comparing is the one with
+average startup time of 29.12 hundredths of second and standard deviation of
+4.02 hundredths of seconds. 
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}[]
+        \begin{tabular}{|l|ll|ll|ll|}
+                \hline
+                Images in Catalogs            & \multicolumn{2}{l|}{1}  & \multicolumn{2}{l|}{10}  & \multicolumn{2}{l|}{20}   \\ \hline
+                Size of subcatalog            & \multicolumn{2}{r|}{6MB} & \multicolumn{2}{r|}{67MB} & \multicolumn{2}{r|}{127MB} \\ \hline
+                \multirow{2}{*}{Startup time} & AVG         & STD       & AVG          & STD       & AVG          & STD        \\ \cline{2-7} 
+                                              & 27.45       & 4.37      & 57.61        & 6.01      & 88.76        & 7.52       \\ \hline
+        \end{tabular}
+\caption{Startup time of Singularity containers with the respect of the subcatalog size. The units are in hundredths of seconds. $n = 100$}
+\label{tab:benchmark-catalog}
+        \end{table}
+
+We can see how, on increasing the images in the catalogs, which is directly
+linked to the size of the subcatalog the time to start a containers without
+using the cache increase as well. Moreover is expected that the time to start a
+container where there is only a single container in the catalog is smaller than
+the basecase. Indeed, in the base case are necessary multiple round trip to the
+server, one for every subcatalog in the path, while in the tested case only a
+single sub-catalog is needed.
 
 \section{Containers bandwidth use}
 
@@ -130,10 +160,10 @@ same files.
 
 \section{Complexity}
 
-In order to estimate the complexity of managing the file-system we decide to
+In order to estimate the complexity of managing the file-system we decided to
 use the cyclomatic complexity of the tool that create and manage the
 file-system itself that we discuss on Chapter \ref{ch:Implementation}. We used
-\textit{gocylo} \cite{gocyclo} a command line tool that calculate the
+\textit{gocylo} \cite{gocyclo} a command line tool that calculates the
 cyclomatic complexity of functions written in the Go(lang) language. We show
 the result of the cyclomatic analysis on Table \ref{tbl:cyclomatic}.
 
@@ -163,7 +193,7 @@ the result of the cyclomatic analysis on Table \ref{tbl:cyclomatic}.
 \label{tbl:cyclomatic}
 \end{table}
 
-While the cyclomatic complexity is very high is important to note that
+While the cyclomatic complexity is very high it is important to note that
 idiomatic golang codes requires to manually check every possible error returned
 by other functions, all these checks increase dramatically the cyclomatic
 complexity of the code. Indeed there are 19 error check without any logic in

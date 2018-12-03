@@ -13,26 +13,23 @@ Its mission is to:
 	\item Unite people from all over the world to push the frontiers of sciences and technology, for the benefits of all.
 \end{itemize}
 
-It host the instrument of the 4 biggest physic collaboration: 
-\begin{itemize}
-\item ALICE
-\item ATLAS
-\item CMS
-\item LHCb
-\end{itemize}
+It host the instrument of the 4 biggest physic collaborations: ALICE, ATLAS,
+CMS and LHCb.
 
-CERN host also a plethora of smaller physical collaborations that benefits from
-the instruments, know how, network effect and services available.
+CERN hosts also a plethora of smaller physic collaborations that benefits from
+the instruments, know how, network effects and services available.
 
 Between the services offered to its users the computing service is one of the
 most interesting. Indeed CERN host and manage the WLCG \cite{grid:website}, one
 of the biggest computing data center used for public research.
 
-An issues that affect the operations inside the data center is the provisioning
-of software on the computing servers. Several solution have been proposed and
-eventually the problem is been solved with the use of CernVM-FileSystem
-\cite{cvmfs}, a read only file-system that provides a scalable, reliable and
-low maintenance software distribution system.
+An issue that affect the operations inside the data center is the provisioning
+of software on the computing servers. Scientific software is large and is very
+time and bandwidth consuming moving every binaries from a central repository to
+the computing nodes.  Several solutions have been proposed and eventually the
+problem has been solved with the use of CernVM-FileSystem \cite{cvmfs}, a read
+only file-system that provides a scalable, reliable and low maintenance
+software distribution system.
 
 However simply provide the servers with the necessary software is not enough.
 Indeed also run time dependencies need to be managed to ensure smooth
@@ -43,27 +40,62 @@ environment, even if running on different machines.
 
 However, distribute containers content using CVMFS is not convenient, since the
 containers are distributed as a set of big files and this works against the
-working principle and performance of CVMFS.
+working principle and performance of CVMFS that works better with a lot of
+small files instead of few large files.
 
 This thesis will explore the problem of creating a suitable read-only
 file-system structure to provision containers images on computing nodes. We
 will provide a general read-only file-system structure and we will implement the
 proposed methodology on top of CVMFS.
 
-This thesis is composed by several parts: The background will provide the
-necessary information on the CERN computing architecture (WLCG), then we will
-explore CVMFS and why it is a good fit for the CERN computing architecture, the
-last part of the background will cover the integration between CVMFS and
-containers technologies.  The state of the art will start by exploring
-different distributed file system, then we will explore what alternatives are
-available for software distribution in different setting, from small data
-center up to global data centers like the WLCG. We will then define the problem
-that this thesis is addressing.  The methodology part will explain the details
-of the solution we propose for this specific problem.  The implementation
-chapter will focus on how the proposed methodology is been put in practise.  We
-will evaluate the result of the proposed methodology and implementation on the
-result part following the metrics that were previously proposed.  Finally we
-will propose future work and enhancement to the implementation.
+This thesis is divided in several parts: We will start by providing all the
+necessary information on the CERN computing architecture and the WLCG, then we
+will explore CVMFS and we will explain why is a good fit for the geographically
+distributed model that follows the WLCG. Moreover we will discuss of the
+integration between containers and CVMFS itself and we will introduce the
+problem that this thesis is addressing. Then we will explore the state of the
+art exploring alternative distributed file system, different way to
+provisioning machines inside data center of different size and finally we will
+explore other project in the literature that work lazily like CVMFS. At this
+point we will introduce our methodology to integrate CVMFS and containers. Once
+the methodology has been introduced we will discuss how it is been implemented.
+Finally we will evaluate the results of the proposed methodology and
+implementation and propose future works and enhancement to the implementation.
+
+This thesis is structured as follows:
+\begin{itemize} 
+        \item Chapter \ref{ch:background} provides the necessary background. It
+                start by exploring the computing architecture at CERN, then it
+                explain the role of CVMFS, its high level architecture and how
+                and why it fits well in the CERN environment. The chapter will
+                then illustrate the container run-times that we will exploit in
+                this work. Finally we are going to state the problem definition
+                of this thesis.  
+        \item Chapter \ref{ch:SoA} will describe the state of the art. We will
+                start by illustrating few distributed file systems and their
+                architecture. Then we will move on to describe how provisioning
+                of servers is done in environments of different size and
+                dimensions.  The last part of this chapter will explore other
+                projects in the literature that work lazily as CVMFS.
+
+        \item Chapter \ref{ch:Methodology} will provide the methodology that
+                can be used by a generic read-only file system like CVMFS to
+                host containers images and achieve efficient content
+                distribution.
+
+        \item Chapter \ref{ch:Implementation} will dig into the details of how
+                the file system is managed and created on top of CVMFS using
+                custom software.
+
+        \item Chapter \ref{ch:Results} will show the result of this work
+                comparing start up times of containers in different scenarios
+                as well as the bandwidth used.
+
+        \item Chapter \ref{ch:FutureWorks} will finally explore how this work
+                can be enhanced and improved. Moreover we will show other
+                directions regarding the distribution of containers content
+                that we believe are of interest. 
+\end{itemize}
 
 \chapter{Background and Problem Definition}\label{ch:background}
 
@@ -78,7 +110,7 @@ Then we will introduce the concept of containers, a different way to solve the
 software distribution problem that is widely adopted in the industry. In
 particular, we will focus on Docker containers and the Docker images format. We
 will then explore Singularity, a container runtime capable of running
-containers images stored as simple folder in the filesystem. Finally we will
+containers images stored as simple folder in the file system. Finally we will
 explore the Docker \texttt{cvmfs/graphdriver}, a Docker plugin that allow to
 run Docker images whose content is available on a read-only file-system without
 the need of downloading or accessing the Docker standard images.
