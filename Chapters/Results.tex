@@ -9,17 +9,17 @@ comparison for this metric.
 First we will compare the use of CVMFS structured as explained in Chapter
 \ref{ch:Methodology} as content distribution mechanism against the standard way
 of distributing containers content using Docker Registries, this will show how
-much faster is to distribute content using CVMFS than using the standard
+much faster is to distribute content using CVMFS than using the standard Docker
 registries.  Then we will compare a less sophisticate use of CVMFS without the
 use of \textit{super-directories} and sub-catalogs against the proposed file
 system structure that instead exploit the sub-catalog mechanism, this will show
 how the proposed file system structure compare against simply distribute the
 files with CVMFS.
 
-Then we will compare the use of bandwidth, similarly we will compare the
-bandwidth used by the proposed solution against the bandwidth used by a less
-sophisticate use of CVMFS without the use of \textit{super-directories} and
-sub-catalogs.
+Then we will compare the data transfer necessary to start a container,
+similarly we will compare the data transfer necessary by the proposed solution
+against the data transfer necessary by a less sophisticate use of CVMFS without
+the use of \textit{super-directories} and sub-catalogs.
 
 Moreover we will show the storage requirement for storing the images and how
 much the CVMFS de-duplication mechanism helps in saving space.
@@ -27,9 +27,12 @@ much the CVMFS de-duplication mechanism helps in saving space.
 Finally we will measure the complexity of managing the proposed file system
 structure.
 
+All the measurements have been effectuate on a machine with processor Intel(R)
+Core(TM) i7-7700K CPU @ 4.20GHz and 16GB of RAM.
+
 \section{Containers startup time}
 
-In the first part of this section we explore the startup time of container
+In the first part of this section we explore the startup time of containers
 hosted in CVMFS using the proposed structure against containers hosted in a
 normal file system and served using standard Docker Registries. This
 measurements will show what speed up on the start up time are achievable using
@@ -38,7 +41,7 @@ CVMFS as content distribution system.
 The second part of this section will analyze the startup time of container
 hosted in CVMFS using the proposed file system structure against hosting
 containers in CVMFS but without the use of \textit{super-directories} and
-subcatalogs, this will show how a carefull implementation of the file system
+sub-catalogs, this will show how a careful implementation of the file system
 structure will produce better overall results with the respect of start up time.
 
 On both parts we will use a representative use case, we will start a standard
@@ -65,12 +68,12 @@ containers using the default distribution system based on Docker Registries.
 \hline
 \multicolumn{2}{|l|}{\multirow{2}{*}{}}            & \multicolumn{2}{l|}{Cache} & \multicolumn{2}{l|}{No Cache} \\ \cline{3-6} 
 \multicolumn{2}{|l|}{}                             & Avg          & STD         & Avg            & STD          \\ \hline \hline
-\multirow{2}{*}{Thin-Image on CVMFS} & Singularity & 10.31        & 4.38        & 29.13          & 4.02         \\ \cline{2-6} 
-                                     & Docker      & 96.74        & 5.40        & 180.02         & 35.13        \\ \hline \hline
-\multirow{2}{*}{Default}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
-                                     & Docker      & 95.26        & 5.29        & 1279.21        & 168.99       \\ \hline
+\multirow{2}{*}{Thin-Image on CVMFS} & Singularity & 103.1 ms        & 43.8   ms   & 291.3  ms      & 40.2 ms        \\ \cline{2-6} 
+                                     & Docker      & 967.4 ms       & 54.0  ms      & 1800.2 ms        & 351.3 ms  \\ \hline \hline
+\multirow{2}{*}{Default}               & Singularity & 73.8 ms        & 20.7 ms       & 18847.6  ms      & 3668.4 ms      \\ \cline{2-6} 
+                                     & Docker      & 952.6 ms       & 52.9 ms       & 12792.1  ms      & 1689.9 ms      \\ \hline
 \end{tabular}
-\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of second. $n = 100$}
+\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in milliseconds. $n = 100$}
 \label{tab:benchmark}
 \end{table}
 
@@ -84,7 +87,7 @@ containers using the default distribution system based on Docker Registries.
 We can see that the use of CVMFS is a huge help when the cache is not
 available, moreover its overhead is almost negligible when the cache is
 present. Is interesting to know that the containers hosted in CVMFS without
-cache starts in an amount of time whose order of magnitude is comparable to the
+cache starts in an amount of time that order of magnitude is comparable to the
 containers hosted naively but using cache (4 times slower in the case of
 Singularity and 2 times slower in the case of Docker.)
 
@@ -125,49 +128,47 @@ CVMFS without cache.
 %\end{table}
 
 \begin{figure}[h]{}
-    \includegraphics[scale=0.7]{gfx/runtime-catalog-ic}
-        \caption{Comparison of the containers startup times with the proposed file system structure and without the use of subcatalogs. Lower is better.}
+    \includegraphics[scale=0.7]{gfx/runtime-catalog-ic-2}
+        \caption{Comparison of the containers startup times with the proposed file system structure and without the use of sub-catalogs. The units are in milliseconds. Average of $n=100$ runs. Lower is better.}
         \label{fig:startup-time}
 \end{figure}
 
 
 On Figure \ref{fig:startup-time} we can see how, on increasing the images
-in the catalogs, hence in increasing the size of the subcatalog the
+in the catalogs, hence in increasing the size of the sub-catalog the
 time to start a containers without using the cache increases as well.
 
 Indeed, the catalog needs to be downloaded completely before that it can be
-used, hence increasing the catalog size impact directly with the startup time
+used, hence increasing the catalog size impacts directly with the startup time
 of the containers. Which is the reason why we decide to use the concept of
 \textit{super directories} and sub-catalogs. Indeed with several sub-catalogs
-is not necessary anymore to download a single, large, catalog, but it is
-sufficient to download the small sub-catalog which refer to the specific
+it is not necessary anymore to download a single, large, catalog, but it is
+sufficient to download the small sub-catalogs which refer to the specific
 \textit{super directory} we are accessing.  The trade-off is that downloading a
 single, albeit larger, catalog require only one connection round-trip while
 downloading several catalogs requires several round-trips, however, from our
 measurement, this does not seems to impact the overall startup time.
 
-\section{Containers bandwidth use}
+\section{Data transfer necessary for start a container}
 
 In this section we are going to show how the presence of sub-catalogs affect
-the bandwidth usage. Also in this case we run the python image calling
-immediately the \textit{quit()} command.
-
-We started the image 100 times, each time cleaning up the cache and recording
-the IO bandwidth.
+the amount of data transfer necessary to start a container. Also in this case we run
+the python image calling immediately the \textit{quit()} command.
 
 Similarly to the above case we present the case where the catalogs contains 10,
 20, 30 and 40 images and we compare it with the baseline case, hence with the
 case that use the structured showed in this work. 
 
 Also in this tests the \textit{cvmfs\_client} need to download the catalog each
-time, hence it will need to download a catalog that contains respectively 10,
-20, 30 and 40 images before to execute the container itself.
+time, hence it will need to download a catalog that contains the metadata of
+the files of respectively 10, 20, 30 and 40 images before to execute the
+container itself.
 
-The results of the bandwidth measurements are shown on Figure \ref{fig:bandwidth-usage}
+The results of the data transfer measurements are shown on Figure \ref{fig:bandwidth-usage}
 
-\begin{figure}[h]{}
-    \includegraphics[scale=0.7]{gfx/bandwidth-catalog}
-        \caption{Comparison of the bandwidth with the proposed file system structure and without the use of subcatalogs. Lower is better. $n=100$}
+\begin{figure}[!h]{}
+    \includegraphics[scale=0.7]{gfx/bandwidth-catalog-2}
+        \caption{Comparison of the data transfer necessary to start a container with the proposed file system structure and without the use of sub-catalogs. The units are in MB. Average of $n=100$ runs. Lower is better.}
         \label{fig:bandwidth-usage}
 \end{figure}
 
@@ -182,15 +183,15 @@ The results of the bandwidth measurements are shown on Figure \ref{fig:bandwidth
 %\label{tab:bandwith-catalog}
 %\end{table}
 %
+
 Also in this case we can see how structuring the file system using sub-catalogs
-improves the bandwidth efficiency. Indeed using smaller sub-catalogs as
-proposed will allow to download only the few catalogs that are necessary while
-using a bigger catalog will force to download it even if we are not going to
-use it all. 
+improves the efficiency in the data transfer. Indeed using smaller sub-catalogs
+as proposed will allow to download only the few catalogs that are necessary
+while using a bigger catalog will force the \textit{cvmfs\_client} to download
+a big catalog file even if it is not going to use it all. 
 
 Finally is interesting to remember that the Docker image we are running is
-roughly ~1GB in size, downloading it 100 times it would have resulted in 100GB
-of bandwidth.
+roughly ~1GB in size.
 
 \section{Space Requirement}
 
@@ -200,9 +201,8 @@ used under \texttt{/srv}. The storage required for the whole repository is of
 ~14G calculated with the \texttt{du} unix utility.
 
 We then obtained the size of the two hidden folder \textit{.layers} and
-\textit{.flat} using the `cvmfs\_server list-catalogs` command which provides us
-with the number of files in each catalog and the number of bytes that each
-catalog manage. We finally show all the measurement on Table \ref{tab:size-of-repo}.
+\textit{.flat} using again the \texttt{du} utility. We finally show all the
+measurement on Table \ref{tab:size-of-repo}.
 
 \begin{table}[h]
 \begin{center}

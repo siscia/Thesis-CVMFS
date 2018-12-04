@@ -43,7 +43,7 @@ time.
 \chapter*{Sommario}
 
 Il CERN è una organizzazione Europea che opera il più grande laboratorio
-        della fisica particellare al mondo.
+        della fisica delle particelle al mondo.
 Il CERN ospita la strumentazione delle 4 più grandi collaborazioni nel campo
         della fisica: ALICE, ATLAS, CMS e LHCb.
 
@@ -66,17 +66,17 @@ Un problema che influenza le operazioni dentro il centro di calcolo è
         disposizione un sistema di distribuzione software che è scalabile,
         solido e che richiede poca manutenzione.
 
-Provedere solo alla distribuzione del software, pero' non è sufficiente.
+Provvedere solo alla distribuzione del software, pero' non è sufficiente.
         Infatti anche le dipendenze a run time devono essere gestite per
         garantire operazioni senza problemi. Una possibile soluzion per gestire le
-        dipendenze a run time è l'uso dei containers. I containers
+        dipendenze a run time è l'uso dei container. I container
         impacchettano tutte le dipendenze in un file system immutabile così da
         poter eseguire l'applicazione sempre nello stesso ambiente anche se su
         macchine diverse.
 
 Distribuire il contenuto dei container usando CVMFS non è pratico, visto che
-        i containers sono distribuiti come un insieme di grandi files e questo
-        è contrario ai principi di funzionamento di CVMFS che funziona meglio
+        i containers sono distribuiti come un insieme di grandi file e questo
+        è contrario ai principi di funzionamento di CVMFS che lavora meglio
         con tanti piccoli file.
 
 Questa tesi esplorerà il problema di create un file system di sola lettura
@@ -102,7 +102,7 @@ La tesi è strutturata come segue:
                 architettura, Poi descriveremo come centri di calcolo di tutte
                 le dimensioni sono operati e gestiti. L'ultima parte di questo
                 capitolo esplorerà altri progetti nella letteratura che
-                lavorano in modo pigro come CVMFS.
+                lavorano in modo \textit{pigro} come CVMFS.
 
         \item Il Capitolo \ref{ch:Methodology} descriverà la metodologia che
                 puo' essere usata da un file system di sola lettura generico
