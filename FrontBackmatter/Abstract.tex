@@ -12,13 +12,13 @@
 \chapter*{Abstract} 
 
 The problem of software distribution has always been an issue at CERN, given
-the massive dimension of the software used for analyzing the data they collect
+the massive dimension of the software used for analyzing the data collected
 from the LHC. The problem of software distribution has been historically solved
 by the use of a distributed, read-only file system like CernVM-FS that allows
 distributing binaries to all the geographically distributed data-centers used
 for High Energy Physics computation. However, the problem of managing run-time
 dependencies is still open, indeed, some application can run perfectly well in
-an environment while not working in a different environment.
+an environment while not working in a different one.
 
 The problem of run-time dependencies is already been solved in the industry
 with the use of containers, immutable computing environments which encapsulate
@@ -42,105 +42,82 @@ time.
 \begin{otherlanguage}{italian}
 \chapter*{Sommario}
 
-Il CERN e' una organizzazione Europea che opera il piu' grande laboratorio
+Il CERN è una organizzazione Europea che opera il più grande laboratorio
         della fisica particellare al mondo.
-
-La sua missione e' di:
-
-\begin{itemize}
-        \item Rendere disponibile un unico assortimento di accelleratori per permettere la ricerca sui confini della conoscienza umana
-        \item Effettuare ricerca di primo ordine nel campo della fisica fondamentale
-        \item Unire persone da tutto il  mondo per migliorare i confini della scienza e della tecnologia per il beneficio di tutti.
-\end{itemize}
-
-Il CERN ospita la strumentazione delle 4 piu' grandi collaborazioni nel campo
+Il CERN ospita la strumentazione delle 4 più grandi collaborazioni nel campo
         della fisica: ALICE, ATLAS, CMS e LHCb.
 
-Sono ospitati al CERN anche un insieme di collaborazioni nel campo della fisica
-        piu' piccole che beneficiano delle strumentazioni, conoscienze, effetto
+Al CERN sono ospitati anche un insieme di collaborazioni nel campo della fisica
+        più piccole che beneficiano delle strumentazioni, conoscienze, effetto
         network e servizi disponibili.
 
-Tra i servizi che il CERN offre il ai suoi utenti quello informatico e' uno dei
-        piu' interesanti. Infatti il CERN ospita e gestisce il WLCG
-        \cite{grid:website}, uno dei piu' grandi centri di calcolo usato per la
+Tra i servizi che il CERN offre ai suoi utenti quello informatico è uno dei
+        più interesanti. Infatti il CERN ospita e gestisce il WLCG
+        \cite{grid:website}, uno dei più grandi centri di calcolo usati per la
         ricerca pubblica.
 
-Un problema che influenza le operazioni dentro il centro di calcolo e'
-        come installare e impostare il software sui singoli computer. Il
-        software usato nell ambito scientifico e' di grandi dimensioni ed e' molto
+Un problema che influenza le operazioni dentro il centro di calcolo è
+        come installare e impostare il software sui singoli server. Il
+        software usato nell ambito scientifico è di grandi dimensioni ed è molto
         dispendioso in tempo di banda e tempo spostare ogni binario da una
         posizione centrale ad ogni singolo computer. Diverse soluzioni sono
-        state proposte e alla fine is problema e' stato risolto con l'uso di
+        state proposte e alla fine is problema è stato risolto con l'uso di
         CernVM-FileSystem \cite{cvmfs}, un file system di sola lettura che mette a
-        disposizione un sistema di distribuzione software che e' scalabile,
+        disposizione un sistema di distribuzione software che è scalabile,
         solido e che richiede poca manutenzione.
 
-Provedere solo alla distribuzione del software, pero' non e' sufficiente.
+Provedere solo alla distribuzione del software, pero' non è sufficiente.
         Infatti anche le dipendenze a run time devono essere gestite per
         garantire operazioni senza problemi. Una possibile soluzion per gestire le
-        dipendenze a run time e' l'uso dei containers. I containers
-        impacchettano tutte le dipendenze in un file system immutabile cosi' da
+        dipendenze a run time è l'uso dei containers. I containers
+        impacchettano tutte le dipendenze in un file system immutabile così da
         poter eseguire l'applicazione sempre nello stesso ambiente anche se su
         macchine diverse.
 
-Distribuire il contenuto dei containers usando CVMFS non e' pratico, visto che
+Distribuire il contenuto dei container usando CVMFS non è pratico, visto che
         i containers sono distribuiti come un insieme di grandi files e questo
-        e' contrario ai principi di funzionamento di CVMFS che funziona meglio
+        è contrario ai principi di funzionamento di CVMFS che funziona meglio
         con tanti piccoli file.
 
-Questa tesi esplorera' il problema di create un file system di sola lettura
-        addatto per distribuire il contenuto di containers sui nodi di
+Questa tesi esplorerà il problema di create un file system di sola lettura
+        addatto per distribuire il contenuto di container sui nodi di
         computazione. Descriveremo la struttura di un file system di sola
         lettura generico e implementero la metodologia proposta con CVMFS.
 
-Questa tesi e' divisa in diverse parti: Inizieremo fornendo tutte le
-        informazioni necessarie sulla architettura del centro di calcolo del
-        CERN e sul WLCG, poi esploreremo CVMFS e spiegheremo perche' e' un
-        modello molto adatto alla architetura geograficamente distribuita del
-        WLCG. Continueremo discutendo l'integrazione tra i containers e CVMFS
-        introducendo il problema che questa tesi sta affrontando. Poi
-        esploreremo lo stato dell'arte nei file system distribuiti, come centri
-        di calcolo di diverse dimensioni sono gestiti ed infine esploreremo
-        altri progetti in letteratura che lavorano in modo pigro come CVMFS. A
-        questo punto introduremmo la nostra metodologia per integrare CVMFS e
-        containers. Dopo che abbiamo introdotto la metodologia discuteremo come
-        essa e' stata implementata nel nostro lavoro. Infine valuteremo i
-        risultati del nostro lavoro e suggeriremo possibili miglioramenti.
-
-La tesi e' strutturata come segue: 
+La tesi è strutturata come segue: 
 
 \begin{itemize} 
         
         \item Il Capitolo \ref{ch:background} fornisce tutte le informazioni
                 necessarie di base. Inizia esplorando l'architettura del centro
                 di calcolo del CERN, poi spiega il ruolo di CVMFS, la sua
-                architettura di alto livello e come e perche' e' uno strumentto
-                adatto all ambiente del CERN.  Il capitolo illustrera' anche le
+                architettura di alto livello e come e perchè è uno strumentto
+                adatto all ambiente del CERN.  Il capitolo illustrerà anche le
                 run time di containers che verranno usate in questo lavoro.
                 Alla fine forniremo la definizione del problema che questa tesi
                 si pone.  
         
-        \item Il Capitolo \ref{ch:SoA} descrivera' lo stato dell'arte.
+        \item Il Capitolo \ref{ch:SoA} descriverà lo stato dell'arte.
                 Inizieremo illustrando alcuni file system distribuiti e la loro
                 architettura, Poi descriveremo come centri di calcolo di tutte
                 le dimensioni sono operati e gestiti. L'ultima parte di questo
-                capitolo esplorera' altri progetti nella letteratura che
+                capitolo esplorerà altri progetti nella letteratura che
                 lavorano in modo pigro come CVMFS.
 
-        \item Il Capitolo \ref{ch:Methodology} descrivera' la metodologia che
+        \item Il Capitolo \ref{ch:Methodology} descriverà la metodologia che
                 puo' essere usata da un file system di sola lettura generico
                 come CVMFS per ospitare immagini di containers e raggiungere
                 una distribuzione del contenuto efficiente.
 
-        \item Il Capitolo \ref{ch:Implementation} mostrera' i dettagli della
-                implementazione e come il file system e' gestito e creato sopra
+        \item Il Capitolo \ref{ch:Implementation} mostrerà i dettagli della
+                implementazione e come il file system è gestito e creato sopra
                 CVMFS usando del software apposito.
                 
-        \item Il Capitolo \ref{ch:Results} mostrera' i risultati di questo
+        \item Il Capitolo \ref{ch:Results} mostrerà i risultati di questo
                 lavoro comparando il tempo di avvio di containers in scenari
-                diversi, cosi' come l'uso di banda.
+                diversi, così come l'uso di banda.
 
-        \item Il Capitolo \ref{ch:FutureWorks}, infine, esplorera' come questo
+        \item Il Capitolo \ref{ch:FutureWorks}, infine, esplorerà come questo
                 lavoro puo' essere migliorato. Mostreremo anche alcune
                 direzioni per lo sviluppo della distribuzione dei containers
                 che pensiamo siano di interesse.

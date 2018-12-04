@@ -292,35 +292,37 @@ image we want to remove, if this is the case, we remove the layer, if it is not
 the case we just remove the reference of the image.
 
 \begin{figure}
-\begin{lstlisting}[caption={Algorithm to add an image reference to the layer metadata}, label={lst:add-image-reference-to-layer}]
-Function AddReferenceToImage
-        Pass In: LayerReference, ImageReference
-        ReferenceFile := FindReferenceFile(LayerReference)
+\begin{lstlisting}[language=Pascal,caption={Algorithm to add an image reference to the layer metadata}, label={lst:add-image-reference-to-layer}]
+function AddReferenceToImage(LayerReference, ImageReference)
+begin 
+        ReferenceFile <- FindReferenceFile(LayerReference)
         if ReferenceFile exist
-                References := LoadReferenceFromFile RefereceFile
-                Add ImageReference to References
+                begin
+                References <- LoadReferenceFromFile ReferenceFile
+                Append ImageReference to References
                 Overwrite References to ReferenceFile
+                end;
         else 
-                References = ImageReferences
+                begin
+                References <- ImageReferences
                 Write References to ReferenceFile
-        endif
-EndFunction
+                end;
+end;
 \end{lstlisting}
 \end{figure}
 
 \begin{figure}
-\begin{lstlisting}[caption={Algorithm to remove an image from the file-system}, label={lst:remove-layer}]
-Function RemoveLayer
-        Pass In: LayerReference, ImageReference
-        ReferenceFile := FindReferenceFile(LayerReference)
-        References := LoadReferenceFromFile RefereceFile
+\begin{lstlisting}[language=Pascal,caption={Algorithm to remove an image from the file-system}, label={lst:remove-layer}]
+function RemoveLayer(LayerReference, ImageReference)
+begin
+        ReferenceFile <- FindReferenceFile(LayerReference)
+        References <- LoadReferenceFromFile ReferenceFile
         Remove ImageReference from References
-        if size References == 0
+        if sizeof References = 0
                 Remove Layer
         else
                 Overwrite References to ReferenceFile
-        endif
-EndFunction
+end;
 \end{lstlisting}
 \end{figure}
 

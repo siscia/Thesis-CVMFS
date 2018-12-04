@@ -20,10 +20,10 @@ CERN hosts also a plethora of smaller physic collaborations that benefits from
 the instruments, know how, network effects and services available.
 
 Between the services offered to its users the computing service is one of the
-most interesting. Indeed CERN host and manage the WLCG \cite{grid:website}, one
+most interesting. Indeed CERN hosts and manages the WLCG \cite{grid:website}, one
 of the biggest computing data center used for public research.
 
-An issue that affect the operations inside the data center is the provisioning
+An issue that affects the operations inside the data center is the provisioning
 of software on the computing servers. Scientific software is large and is very
 time and bandwidth consuming moving every binaries from a central repository to
 the computing nodes.  Several solutions have been proposed and eventually the
@@ -48,29 +48,16 @@ file-system structure to provision containers images on computing nodes. We
 will provide a general read-only file-system structure and we will implement the
 proposed methodology on top of CVMFS.
 
-This thesis is divided in several parts: We will start by providing all the
-necessary information on the CERN computing architecture and the WLCG, then we
-will explore CVMFS and we will explain why is a good fit for the geographically
-distributed model that follows the WLCG. Moreover we will discuss of the
-integration between containers and CVMFS itself and we will introduce the
-problem that this thesis is addressing. Then we will explore the state of the
-art exploring alternative distributed file system, different way to
-provisioning machines inside data center of different size and finally we will
-explore other project in the literature that work lazily like CVMFS. At this
-point we will introduce our methodology to integrate CVMFS and containers. Once
-the methodology has been introduced we will discuss how it is been implemented.
-Finally we will evaluate the results of the proposed methodology and
-implementation and propose future works and enhancement to the implementation.
-
 This thesis is structured as follows:
 \begin{itemize} 
         \item Chapter \ref{ch:background} provides the necessary background. It
                 start by exploring the computing architecture at CERN, then it
                 explain the role of CVMFS, its high level architecture and how
-                and why it fits well in the CERN environment. The chapter will
-                then illustrate the container run-times that we will exploit in
-                this work. Finally we are going to state the problem definition
-                of this thesis.  
+                and why it fits well in the WLCG geographically distributed
+                data center. The chapter will then illustrate the container
+                run-times that we will exploit in this work and how they
+                interact with CVMFS. Finally we are going to state the problem
+                definition of this thesis.  
         \item Chapter \ref{ch:SoA} will describe the state of the art. We will
                 start by illustrating few distributed file systems and their
                 architecture. Then we will move on to describe how provisioning

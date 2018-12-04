@@ -56,27 +56,31 @@ CVMFS. The pseudocode \ref{lst:ingest-singularity} show the details of the
 algorithm.
 
 \begin{figure}
-\begin{lstlisting}[caption={Algorithm to unpack a Docker image with Singularity and ingest it into CVMFS}, label={lst:ingest-singularity}]
-Function UnpackAndIngestDockerImage
-        Pass In: DockerImageName
+\begin{lstlisting}[language=Pascal,caption={Algorithm to unpack a Docker image with Singularity and ingest it into CVMFS}, label={lst:ingest-singularity}]
+function UnpackAndIngestDockerImage(DockerImageName)
         
-        Digest := RetrieveDigestFromImageName DockerImageName
-        TemporaryDirectory := CreateTempDirectory
+        Digest <- RetrieveDigestFromImageName DockerImageName
+        TemporaryDirectory <- CreateTempDirectory
         UnpackDockerImageWithSingularity TemporaryDirectory
 
         StartCVMFSTransaction
-            FlatDir := CreateFlatDirectory Digest
+        begin
+            FlatDir <- CreateFlatDirectory Digest
             MoveFrom TemporaryDirectory Into FlatDir
+        end;
         CommitCVMFSTransaction
 
-        HumanReadableName := GetDirectoryFromDockerImageName DockerImageName
+        HumanReadableName 
+                <- GetDirFromDockerImageName DockerImageName
         
         StartCVMFSTransaction
+        begin
             CreateDirectory HumanReadableName
-            CreatSymlinkFrom HumanReadableName To FlatDir
+            CreatSymlinkFrom HumanReadableName Toward FlatDir
+        end;
         CommitCVMFSTransaction
 
-EndFunction
+end;
 \end{lstlisting}
 \end{figure}
 

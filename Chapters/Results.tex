@@ -2,21 +2,27 @@
 \chapter{Results}\label{ch:Results}
 %************************************************
 
-In this section we will explore the experimental results of this work. First we
-will focus on the startup time of containers, and we will make two different
-comparison for this metric. First we will compare the use of CVMFS structured
-as explained in this work as content distribution mechanism against the
-standard way of distributing content. Then we will compare a more naive use of
-CVMFS without the use of \textit{super-directories} and sub-catalogs against
-the proposed file system structure that instead exploit the sub-catalog
-mechanism. 
+In this section we will explore the experimental results of this work. At first
+we will focus on the startup time of containers and we will make two different
+comparison for this metric. 
 
-Then we will compare the use of bandwidth, again we will make two different
-comparison. The first will compare the use of CVMFS as content distribution
-layer against the normal distribution mechanism used for containers base on
-Docker registries. Then we will compare the use of the proposed file system
-structure against a file system, still hosted in CVMFS, but without the use of
-sub-catalogs. 
+First we will compare the use of CVMFS structured as explained in Chapter
+\ref{ch:Methodology} as content distribution mechanism against the standard way
+of distributing containers content using Docker Registries, this will show how
+much faster is to distribute content using CVMFS than using the standard
+registries.  Then we will compare a less sophisticate use of CVMFS without the
+use of \textit{super-directories} and sub-catalogs against the proposed file
+system structure that instead exploit the sub-catalog mechanism, this will show
+how the proposed file system structure compare against simply distribute the
+files with CVMFS.
+
+Then we will compare the use of bandwidth, similarly we will compare the
+bandwidth used by the proposed solution against the bandwidth used by a less
+sophisticate use of CVMFS without the use of \textit{super-directories} and
+sub-catalogs.
+
+Moreover we will show the storage requirement for storing the images and how
+much the CVMFS de-duplication mechanism helps in saving space.
 
 Finally we will measure the complexity of managing the proposed file system
 structure.
@@ -25,31 +31,36 @@ structure.
 
 In the first part of this section we explore the startup time of container
 hosted in CVMFS using the proposed structure against containers hosted in a
-normal file system. The second part of this section will analyze the startup
-time of container hosted in CVMFS using the proposed file system structure
-against hosting containers in CVMFS but without the use of
-\textit{super-directories} and subcatalogs.
+normal file system and served using standard Docker Registries. This
+measurements will show what speed up on the start up time are achievable using
+CVMFS as content distribution system. 
 
-On both parts we will use a representative use case, we will start the standard
+The second part of this section will analyze the startup time of container
+hosted in CVMFS using the proposed file system structure against hosting
+containers in CVMFS but without the use of \textit{super-directories} and
+subcatalogs, this will show how a carefull implementation of the file system
+structure will produce better overall results with the respect of start up time.
+
+On both parts we will use a representative use case, we will start a standard
 python container, start the python interpreter and immediately quit the
-interpreter itself executing the \textit{quit()} command. We decide to use this
+interpreter itself executing the \textit{quit()} command. We decided to use this
 use case since it requires to have access to the python interpreter in the
-container, which is an executable of not negligible size: 3.4MB. Moreover, we 
-chose the standard python image because is a widely known image used during both
+container, which is an executable file of not negligible size: 3.4MB. Moreover, we 
+chose the standard python image because is a widely used image during both
 development and production work. The size of the whole image is of roughly 923MB.
 
-All the measurements are collected using the standard unix util \textit{time}.
+All the measurements are made inside CERN infrastructure and are collected
+using the standard unix util \textit{time}.
 
-\subsection{Use of CVMFS vs. Standard containers distribution mechanism}
+\subsection{Comparison of the startup time}
 
-For this analysis we propose 8 scenarios that we synthesize in Table
-\ref{tab:benchmark} and on the graph of Figure \ref{fig:startup-time}. The
-\textit{Thin-Image on CVMFS} row represent the startup time of containers which
-content is hosted in the CVMFS architecture discussed in this work. The
-\textit{Default} columns represent the start up time of containers using the
-default distribution system based on Docker Registries.
+For this analysis we propose 8 scenarios that we synthesized in Table
+\ref{tab:benchmark}. The \textit{Thin-Image on CVMFS} row represent the startup
+time of containers which content is hosted in the CVMFS architecture discussed
+in this work. The \textit{Default} columns represent the start up time of
+containers using the default distribution system based on Docker Registries.
 
-\begin{table}[]
+\begin{table}[h]
 \begin{tabular}{|l|l|l|l|l|l|}
 \hline
 \multicolumn{2}{|l|}{\multirow{2}{*}{}}            & \multicolumn{2}{l|}{Cache} & \multicolumn{2}{l|}{No Cache} \\ \cline{3-6} 
@@ -59,15 +70,15 @@ default distribution system based on Docker Registries.
 \multirow{2}{*}{Default}               & Singularity & 7.38         & 2.07        & 1884.76        & 366.84       \\ \cline{2-6} 
                                      & Docker      & 95.26        & 5.29        & 1279.21        & 168.99       \\ \hline
 \end{tabular}
-\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of seconds. $n = 100$}
+\caption{Benchmark of startup time of a containers, the first number is the average while the second is the standard deviation. The units are in hundredths of second. $n = 100$}
 \label{tab:benchmark}
 \end{table}
 
-\begin{figure}[]{}
-    \includegraphics[width=\textwidth]{gfx/plot-startup-time}
-        \caption{Startup times of the containers served using the proposed architecture and served using the standard Docker Registries.}
-        \label{fig:startup-time}
-\end{figure}
+%\begin{figure}[]{}
+%    \includegraphics[width=\textwidth]{gfx/plot-startup-time}
+%        \caption{Startup times of the containers served using the proposed architecture and served using the standard Docker Registries.}
+%        \label{fig:startup-time}
+%\end{figure}
 
 
 We can see that the use of CVMFS is a huge help when the cache is not
@@ -89,85 +100,111 @@ containers without using sub-catalogs. Moreover, in the case without
 sub-catalogs we present the case where the whole repository contains 10,
 20, 30 and 40 images.
 
-We used the Singularity runtime for this test that being faster to start up is less
+Since no sub-catalogs are used the \textit{cvmfs\_client} will need to download
+a single catalog that keep track of all the files contained in, respectively,
+10, 20, 30 and 40 images.
+
+We used the Singularity runtime for this test because its start up is less
 influenced by the run time overhead. Moreover, the base case is equivalent to
 the case showed in the previous test, using the Singularity run time, served by
-CVMFS without cache. Hence the base case we are comparing is the one with
-average startup time of 29.12 hundredths of second and standard deviation of
-4.02 hundredths of seconds. 
+CVMFS without cache. 
 
 
 % Please add the following required packages to your document preamble:
 % \usepackage{multirow}
-\begin{table}[]
-\begin{tabular}{|l|ll|ll|ll|ll|}
-\hline
-Images in Catalogs            & \multicolumn{2}{l|}{10}   & \multicolumn{2}{l|}{20}    & \multicolumn{2}{l|}{30}    & \multicolumn{2}{l|}{40}    \\ \hline
-Size of subcatalog            & \multicolumn{2}{l|}{67MB} & \multicolumn{2}{l|}{127MB} & \multicolumn{2}{l|}{188MB} & \multicolumn{2}{l|}{249MB} \\ \hline
-\multirow{2}{*}{Startup time} & AVG          & STD        & AVG           & STD        & AVG           & STD        & AVG           & STD        \\ \cline{2-9} 
-                              & 57.61        & 6.01       & 88.76         & 7.52       & 129.50        & 15.95      & 150.42        & 29.84      \\ \hline
-\end{tabular}
-\caption{Startup time of Singularity containers with the respect of the subcatalog size. The units are in hundredths of seconds. $n = 100$}
-\label{tab:benchmark-catalog}
-\end{table}
+%\begin{table}[]
+%\begin{tabular}{|l|ll|ll|ll|ll|}
+%\hline
+%Images in Catalogs            & \multicolumn{2}{l|}{10}   & \multicolumn{2}{l|}{20}    & \multicolumn{2}{l|}{30}    & \multicolumn{2}{l|}{40}    \\ \hline
+%Size of subcatalog            & \multicolumn{2}{l|}{67MB} & \multicolumn{2}{l|}{127MB} & \multicolumn{2}{l|}{188MB} & \multicolumn{2}{l|}{249MB} \\ \hline
+%\multirow{2}{*}{Startup time} & AVG          & STD        & AVG           & STD        & AVG           & STD        & AVG           & STD        \\ \cline{2-9} 
+%                              & 57.61        & 6.01       & 88.76         & 7.52       & 129.50        & 15.95      & 150.42        & 29.84      \\ \hline
+%\end{tabular}
+%\caption{Startup time of Singularity containers with the respect of the subcatalog size. The units are in hundredths of seconds. $n = 100$}
+%\label{tab:benchmark-catalog}
+%\end{table}
 
-\begin{figure}[]{}
-    \includegraphics[width=\textwidth]{gfx/runtime-catalog}
-        \caption{Comparison of the containers startup times with the proposed file system structure and without the use of subcatalogs.}
+\begin{figure}[h]{}
+    \includegraphics[scale=0.7]{gfx/runtime-catalog-ic}
+        \caption{Comparison of the containers startup times with the proposed file system structure and without the use of subcatalogs. Lower is better.}
         \label{fig:startup-time}
 \end{figure}
 
 
-On Table \ref{tab:benchmark-catalog} we can see how, on increasing the images
+On Figure \ref{fig:startup-time} we can see how, on increasing the images
 in the catalogs, hence in increasing the size of the subcatalog the
 time to start a containers without using the cache increases as well.
 
-Indeed, the catalog need to be downloaded completely before that it can be
+Indeed, the catalog needs to be downloaded completely before that it can be
 used, hence increasing the catalog size impact directly with the startup time
 of the containers. Which is the reason why we decide to use the concept of
-\textit{super directories}.
+\textit{super directories} and sub-catalogs. Indeed with several sub-catalogs
+is not necessary anymore to download a single, large, catalog, but it is
+sufficient to download the small sub-catalog which refer to the specific
+\textit{super directory} we are accessing.  The trade-off is that downloading a
+single, albeit larger, catalog require only one connection round-trip while
+downloading several catalogs requires several round-trips, however, from our
+measurement, this does not seems to impact the overall startup time.
 
 \section{Containers bandwidth use}
 
-In this section we are going to show how the presence of sub-catalogs affect the bandwidth usage. Also in this case we run the python image calling immediately the \textit{quit()} command.
+In this section we are going to show how the presence of sub-catalogs affect
+the bandwidth usage. Also in this case we run the python image calling
+immediately the \textit{quit()} command.
 
-Similarly to the above case we present the case where the catalogs contains 10, 20, 30 and 40 images and we compare it with the baseline case, hence with the case that use the structured showed in this work.
+We started the image 100 times, each time cleaning up the cache and recording
+the IO bandwidth.
 
-The results are show on Table \ref{tab:bandwith-catalog} and on Figure \ref{fig:bandwidth-usage}
+Similarly to the above case we present the case where the catalogs contains 10,
+20, 30 and 40 images and we compare it with the baseline case, hence with the
+case that use the structured showed in this work. 
 
-\begin{figure}[]{}
-    \includegraphics[width=\textwidth]{gfx/bandwidth-catalog}
-        \caption{Comparison of the bandwidth with the proposed file system structure and without the use of subcatalogs.  }
+Also in this tests the \textit{cvmfs\_client} need to download the catalog each
+time, hence it will need to download a catalog that contains respectively 10,
+20, 30 and 40 images before to execute the container itself.
+
+The results of the bandwidth measurements are shown on Figure \ref{fig:bandwidth-usage}
+
+\begin{figure}[h]{}
+    \includegraphics[scale=0.7]{gfx/bandwidth-catalog}
+        \caption{Comparison of the bandwidth with the proposed file system structure and without the use of subcatalogs. Lower is better. $n=100$}
         \label{fig:bandwidth-usage}
 \end{figure}
 
 
-\begin{table}[]
-\begin{tabular}{|l|l|l|l|l|l|}
-\hline
-                & Base Case & 10  & 20   & 30   & 40    \\ \hline
-Bandwidth Usage & 64.25     & 624 & 1651 & 8020 & 12540 \\ \hline
-\end{tabular}
-\caption{Comparison of the bandwidth used to start the containers 100 times with and without use of subcatalogs. Units in MB.}
-\label{tab:bandwith-catalog}
-\end{table}
-
+%\begin{table}[]
+%\begin{tabular}{|l|l|l|l|l|l|}
+%\hline
+%                & Base Case & 10  & 20   & 30   & 40    \\ \hline
+%Bandwidth Usage & 64.25     & 624 & 1651 & 8020 & 12540 \\ \hline
+%\end{tabular}
+%\caption{Comparison of the bandwidth used to start the containers 100 times with and without use of subcatalogs. Units in MB.}
+%\label{tab:bandwith-catalog}
+%\end{table}
+%
 Also in this case we can see how structuring the file system using sub-catalogs
-improves the bandwidth efficiency.
+improves the bandwidth efficiency. Indeed using smaller sub-catalogs as
+proposed will allow to download only the few catalogs that are necessary while
+using a bigger catalog will force to download it even if we are not going to
+use it all. 
+
+Finally is interesting to remember that the Docker image we are running is
+roughly ~1GB in size, downloading it 100 times it would have resulted in 100GB
+of bandwidth.
 
 \section{Space Requirement}
 
 By default CVMFS stores all its content in \texttt{/srv}, hence the most
 reliable way to obtain the size of the repository is to analyze the storage
 used under \texttt{/srv}. The storage required for the whole repository is of
-~14G calculate with the \texttt{du} unix utility.
+~14G calculated with the \texttt{du} unix utility.
 
-We than obtain the size of the two hidden folder \textit{.layers} and
+We then obtained the size of the two hidden folder \textit{.layers} and
 \textit{.flat} using the `cvmfs\_server list-catalogs` command which provides us
 with the number of files in each catalog and the number of bytes that each
-catalog manage. We finally show all the measurement on Figure \ref{tab:size-of-repo}.
+catalog manage. We finally show all the measurement on Table \ref{tab:size-of-repo}.
 
-\begin{table}[]
+\begin{table}[h]
 \begin{center}
 \begin{tabular}{|l|lll|}
 \hline
@@ -181,19 +218,21 @@ catalog manage. We finally show all the measurement on Figure \ref{tab:size-of-r
 
 We can see that the Content-Addressable-Storage used by CVMFS helps a lot by
 reducing the amount of space required to host the repository by half, which
-make sense since the \textit{.layers} and the \textit{.flat} contains the exact
-same files.
+make sense since the \textit{.layers} and the \textit{.flat} folders contains
+the exact same files. Moreover, files are also shared between different Docker
+images, and those file are de-duplicated as well, which explain why the size of
+the storage folder is much smaller than the materialized files.
 
 \section{Complexity}
 
 In order to estimate the complexity of managing the file-system we decided to
-use the cyclomatic complexity of the tool that create and manage the
-file-system itself that we discuss on Chapter \ref{ch:Implementation}. We used
-\textit{gocylo} \cite{gocyclo} a command line tool that calculates the
+use the cyclomatic complexity of the tool that creates and manages the
+file-system itself that we discussed on Chapter \ref{ch:Implementation}. We used
+\textit{gocylo} \cite{gocyclo}, a command line tool that calculates the
 cyclomatic complexity of functions written in the Go(lang) language. We show
 the result of the cyclomatic analysis on Table \ref{tbl:cyclomatic}.
 
-\begin{table}[]
+\begin{table}[h]
 \begin{tabular}{|l|l|}
 \hline
 \multicolumn{1}{|r|}{Cyclomatic Complexity} & \multicolumn{1}{r|}{Function} \\ \hline
